@@ -10,8 +10,9 @@
 - Mermaid: double-clicking the +/− /reset buttons no longer triggers a reset (rapid button clicks are no longer hijacked by the double-click-to-reset gesture).
 - Mermaid: new **⛶ fit-to-screen** control fills the viewport with the whole diagram, crisply (vector-resized, no quality loss). Press the ⛶ button or Esc to exit; double-click re-fits while filled. Works in both the VS Code preview and exported HTML.
 - Mermaid: Ctrl/⌘ + mouse-wheel now zooms the diagram in the VS Code preview instead of zooming the whole preview page. (MPE has its own `document`-level Ctrl+wheel page-zoom; our handler now runs first on `window` and suppresses it only when the cursor is over a diagram.)
-- The C# code palette applies only to C# code blocks now; every other language keeps its own highlighter colors, so the theme is generic. Removed all "Visual Studio 2019" branding.
+- Generic, theme-independent syntax palette applied to all languages (it follows the light/dark lever), so every token type stays legible in both modes and looks the same in the preview and in exported HTML — regardless of your VS Code editor theme. Removed all "Visual Studio 2019" branding.
 - Fix: "Toggle Light / Dark" now actually switches the preview and is independent of the VS Code editor theme. The lever now lives only in the global `style.less` (a duplicate in the workspace copy could override it), and the toggle no longer accidentally edits a `color-scheme` example inside a CSS comment (LESS preserves `/* */` comments) instead of the real rule.
+- Fix: HTML export / "Open in Browser" now reflows correctly when the browser window is resized. MPE centers the export box with `left:50%; transform:translateX(-50%)`; the layout fix now also clears that transform (it was shifting the content off the left edge on narrow windows).
 
 ## 0.0.1
 

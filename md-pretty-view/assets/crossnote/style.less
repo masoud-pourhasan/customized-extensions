@@ -87,7 +87,9 @@ html, body {
     /* --- Tables --- */
     table { border-collapse: collapse; }
     table th {
-        background: light-dark(rgba(9, 105, 218, 0.08), rgba(79, 195, 247, 0.12)) !important;
+        /* A soft but clearly-darker-than-the-cells header row, so headers are
+           easy to distinguish (cells sit on the page background). */
+        background: light-dark(#dce5f2, #2b3444) !important;
         color: light-dark(#0969da, #4fc3f7) !important;
         border: 1px solid rgba(128, 128, 128, 0.3);
         padding: 0.5em 0.9em !important;
@@ -103,9 +105,9 @@ html, body {
     /* =================================================================
        FENCED CODE BLOCKS — a clean code surface that follows THE ONE LEVER
        (a soft gray in light mode, a touch lighter than the page in dark
-       mode). Syntax-token colors are applied per language: C# uses the
-       bundled palette (see the "C# SYNTAX PALETTE" block below); every other
-       language keeps its own highlighter's colors.
+       mode). Syntax-token colors for every language come from the bundled
+       palette in the "SYNTAX PALETTE" block below, so they always follow the
+       lever and stay legible.
        ================================================================= */
     pre {
         border-left: 4px solid light-dark(#0000ff, #569cd6);   /* accent, per mode */
@@ -181,24 +183,23 @@ html body .crossnote.markdown-preview pre .namespace {
 }
 
 /* =====================================================================
-   C# SYNTAX PALETTE — applied ONLY to C# code blocks (`language-csharp`
-   / `language-cs`). Every other language keeps its highlighter's own
-   colors: the editor theme's colors in the live preview (MPE's
-   `prism_theme/vscode.css`) and Prism's default palette in exported HTML
-   (`prism_theme/default.css`).
-
-   The palette is declared as `--prism-*` custom properties on the C# block
-   AND re-mapped onto the Prism `.token.*` classes here, because HTML EXPORT
-   swaps in `default.css`, which hard-codes its own colors and ignores
-   `--prism-*`. Re-declaring the mapping (high-specificity + !important)
-   makes the palette apply identically in preview and export. The language
-   class can sit on the <pre> or the <code>, so both are matched; the nested
-   `.token.*` rules therefore expand to descendants of either.
+   SYNTAX PALETTE — applied to ALL fenced code blocks so token colors always
+   follow THE ONE LEVER (light-dark) and stay legible on the code surface, in
+   BOTH the live preview and exported HTML. This deliberately overrides MPE's
+   per-theme colors: the preview's `prism_theme/vscode.css` binds tokens to the
+   VS CODE EDITOR THEME, so when the lever is light but the editor theme is dark
+   (or vice-versa), punctuation/decorators/numbers/etc. turn near-invisible
+   (e.g. light-grey punctuation on a light surface). HTML export uses Prism's
+   `default.css` (light-oriented), which differs again. Declaring `--prism-*`
+   here and re-mapping the Prism `.token.*` classes (high-specificity +
+   !important) makes every language consistent and readable everywhere. Values
+   follow the VS light/dark palette. The language class may sit on the <pre> or
+   the <code>; matching plain `pre` too covers every fenced block.
    ===================================================================== */
-html body .crossnote.markdown-preview pre[class~="language-csharp"],
-html body .crossnote.markdown-preview pre[class~="language-cs"],
-html body .crossnote.markdown-preview code[class~="language-csharp"],
-html body .crossnote.markdown-preview code[class~="language-cs"] {
+html body .crossnote.markdown-preview pre[class*="language-"],
+html body .crossnote.markdown-preview pre.sourceCode,
+html body .crossnote.markdown-preview pre,
+html body .crossnote.markdown-preview code[class*="language-"] {
     --prism-foreground:      light-dark(#000000, #dcdcdc);
     --prism-comment:         light-dark(#008000, #57a64a);
     --prism-string:          light-dark(#a31515, #d69d85);
@@ -238,6 +239,8 @@ html body .crossnote.markdown-preview code[class~="language-cs"] {
     .token.entity, .token.url { color: var(--prism-string) !important; }
     .token.atrule, .token.keyword { color: var(--prism-keyword) !important; }
     .token.keyword.control-flow { color: var(--prism-keyword-control) !important; }
+    /* Decorators/annotations (e.g. Python `@dataclass`, Java `@Override`). */
+    .token.decorator, .token.annotation, .token.decorator .token.punctuation { color: var(--prism-function) !important; }
     .token.function { color: var(--prism-function) !important; }
     .token.regex { color: var(--prism-regex) !important; }
     .token.variable { color: var(--prism-variable) !important; }
@@ -385,6 +388,11 @@ html body .crossnote.markdown-preview .mermaid {
 body[for="html-export"] .crossnote.markdown-preview,
 body[for="html-export"]:not([data-presentation-mode]) .crossnote.markdown-preview {
     left: auto !important;
+    /* MPE centers the export box with `left:50%; transform:translateX(-50%)`.
+       We override `left`, so the leftover transform would shift the box off
+       the left edge (worse as the window narrows). Cancel it and center via
+       margin instead so the layout reflows correctly at any width. */
+    transform: none !important;
     width: auto !important;
     max-width: 1200px !important;
     margin: 0 auto !important;
