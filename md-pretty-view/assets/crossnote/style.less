@@ -438,3 +438,24 @@ body[for="html-export"]:not([data-presentation-mode]) .crossnote.markdown-previe
 .mmd-pz-ctl button:hover {
     background: light-dark(#f3f4f6, #3a4150);
 }
+
+/* Fit-to-screen overlay (⛶ button; Esc or ⛶ to exit). A fixed, viewport-filling
+   box that works in the VS Code preview AND in exported HTML (no Fullscreen
+   API — webview iframes block it). `!important` beats the inline height that
+   fitFrame writes, and fixed positioning escapes the 1200px content column. */
+.mmd-pz.-fs {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    resize: none !important;
+    z-index: 2147483000 !important;
+    background: light-dark(#ffffff, #1e1e1e) !important;
+}
+/* Keep the controls/hint visible while fitted (no hover needed). */
+.mmd-pz.-fs .mmd-pz-ctl,
+.mmd-pz.-fs .mmd-pz-hint { opacity: 1 !important; }

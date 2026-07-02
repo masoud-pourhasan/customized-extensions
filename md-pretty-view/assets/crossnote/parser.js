@@ -87,7 +87,7 @@
 
       var hint = document.createElement("div");
       hint.className = "mmd-pz-hint";
-      hint.textContent = "pinch / Ctrl+scroll = zoom · drag = pan · dbl-click = reset";
+      hint.textContent = "pinch / Ctrl+scroll = zoom · drag = pan · dbl-click = reset · ⛶ = fit screen";
       wrap.appendChild(hint);
 
       svg.style.transformOrigin = "0 0";
@@ -100,7 +100,7 @@
 
       var bar = document.createElement("div");
       bar.className = "mmd-pz-ctl";
-      [["＋", "in"], ["－", "out"], ["⟲", "reset"]].forEach(function (b) {
+      [["＋", "in"], ["－", "out"], ["⟲", "reset"], ["⛶", "fit"]].forEach(function (b) {
         var btn = document.createElement("button");
         btn.type = "button";
         btn.textContent = b[0];
@@ -198,7 +198,54 @@
     wrap.dataset.pzTy = st.ty;
     applyState(wrap);
   }
-  function reset(wrap) { setState(wrap, { scale: 1, tx: 0, ty: 0 }); }
+  function reset(wrap) {
+    // While filling the screen, "reset" re-fits (a scale-1 top-left view would
+    // look broken inside the full-screen overlay).
+    if (wrap.classList.contains("-fs")) { fitToViewport(wrap); return; }
+    setState(wrap, { scale: 1, tx: 0, ty: 0 });
+  }
+
+  // Fit the whole diagram to the viewport. Crisp: applyState resizes the SVG's
+  // intrinsic dimensions (vectors re-rasterize), never CSS transform:scale.
+  function fitToViewport(wrap) {
+    ensureBase(wrap);
+    var bw = parseFloat(wrap.dataset.pzBaseW) || 0;
+    var bh = parseFloat(wrap.dataset.pzBaseH) || 0;
+    if (!bw || !bh) return;
+    var vw = window.innerWidth || document.documentElement.clientWidth;
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    var pad = 24;
+    var fit = Math.min((vw - pad * 2) / bw, (vh - pad * 2) / bh);
+    if (!(fit > 0)) fit = 1;
+    setState(wrap, { scale: fit, tx: (vw - bw * fit) / 2, ty: (vh - bh * fit) / 2 });
+  }
+
+  // Toggle "fit to screen": a viewport-filling overlay (class \`-fs\`). Uses a
+  // fixed overlay rather than the Fullscreen API, which VS Code's webview
+  // iframe blocks — this way it works in the preview AND in exported HTML.
+  function toggleFit(wrap) {
+    if (wrap.classList.contains("-fs")) {
+      wrap.classList.remove("-fs");
+      var prev = {
+        scale: parseFloat(wrap.dataset.pzPrevScale) || 1,
+        tx: parseFloat(wrap.dataset.pzPrevTx) || 0,
+        ty: parseFloat(wrap.dataset.pzPrevTy) || 0
+      };
+      delete wrap.dataset.pzPrevScale;
+      delete wrap.dataset.pzPrevTx;
+      delete wrap.dataset.pzPrevTy;
+      setState(wrap, prev);
+      fitFrame(wrap);
+    } else {
+      ensureBase(wrap);
+      var st = getState(wrap);
+      wrap.dataset.pzPrevScale = st.scale;
+      wrap.dataset.pzPrevTx = st.tx;
+      wrap.dataset.pzPrevTy = st.ty;
+      wrap.classList.add("-fs");
+      fitToViewport(wrap);
+    }
+  }
   // Zoom toward a point (cx,cy relative to the wrap). Defaults to its center.
   function zoomAt(wrap, factor, cx, cy) {
     ensureBase(wrap);
@@ -234,15 +281,23 @@
       var act = btn.getAttribute("data-pz-act");
       if (act === "in") zoomAt(wrap, 1.25);
       else if (act === "out") zoomAt(wrap, 0.8);
+      else if (act === "fit") toggleFit(wrap);
       else reset(wrap);
     }, true);
 
     // Ctrl/⌘ + wheel to zoom toward the cursor; plain scroll passes through.
-    document.addEventListener("wheel", function (e) {
+    // Bound on \`window\` in CAPTURE so we run BEFORE MPE's own document-level
+    // Ctrl+wheel handler (which zooms the WHOLE preview). When the cursor is
+    // over a diagram we stopImmediatePropagation so MPE's handler never fires;
+    // elsewhere we do nothing and MPE keeps its normal zoom. In exported HTML
+    // there is no MPE handler, so this just zooms the diagram.
+    window.addEventListener("wheel", function (e) {
+      if (!(e.ctrlKey || e.metaKey)) return;
       var wrap = closestWrap(e.target);
       if (!wrap) return;
-      if (!(e.ctrlKey || e.metaKey)) return;
       e.preventDefault();
+      e.stopPropagation();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
       var r = wrap.getBoundingClientRect();
       zoomAt(wrap, Math.exp(-e.deltaY * 0.002), e.clientX - r.left, e.clientY - r.top);
     }, { passive: false, capture: true });
@@ -273,13 +328,28 @@
     document.addEventListener("pointerup", endPan, true);
     document.addEventListener("pointercancel", endPan, true);
 
-    // Double-click to reset.
+    // Double-click to reset — but NOT when the double-click lands on the control
+    // buttons (rapid +/- clicks must not be hijacked into a reset).
     document.addEventListener("dblclick", function (e) {
+      if (e.target && e.target.closest && e.target.closest(".mmd-pz-ctl")) return;
       var wrap = closestWrap(e.target);
       if (!wrap) return;
       e.preventDefault();
       reset(wrap);
     }, true);
+
+    // Esc exits fit-to-screen.
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      var fs = document.querySelector(".mmd-pz.-fs");
+      if (fs) { e.preventDefault(); toggleFit(fs); }
+    }, true);
+
+    // Keep the fitted diagram centered as the viewport resizes.
+    window.addEventListener("resize", function () {
+      var fs = document.querySelector(".mmd-pz.-fs");
+      if (fs) fitToViewport(fs);
+    });
   }
 
   if (document.readyState === "loading") {

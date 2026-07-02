@@ -5,7 +5,7 @@ A beautiful **Visual Studio 2019** look for **[Markdown Preview Enhanced](https:
 - **One-lever light/dark** — a single `color-scheme` keyword flips the whole page *and* the code palette, independent of your VS Code editor theme.
 - **VS 2019 code palette** — authentic VS2019 Light / Dark syntax colors in fenced code blocks.
 - **Styled Mermaid diagrams** — readable flowcharts and sequence diagrams in both modes.
-- **Mermaid pan / zoom** — drag to pan, Ctrl/⌘+scroll (or +/− buttons) to zoom, double-click to reset. Works in the live preview and in HTML export.
+- **Mermaid pan / zoom** — drag to pan, Ctrl/⌘+scroll (or +/− buttons) to zoom, double-click to reset, and a **⛶ fit-to-screen** button that fills the viewport with the whole diagram crisply (Esc to exit). Works in the live preview and in HTML export.
 
 ## How it works
 
