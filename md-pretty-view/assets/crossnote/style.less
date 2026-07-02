@@ -141,6 +141,8 @@ html, body {
         --prism-regex:           light-dark(#811f3f, #d16969);
         --prism-property:        light-dark(#1f377f, #9cdcfe);
         --prism-selector:        light-dark(#800000, #d7ba7d);
+        --prism-inserted:        light-dark(#098658, #b5cea8);
+        --prism-deleted:         light-dark(#a31515, #d69d85);
     }
     /* The <code> inside a fenced block must be transparent — only the <pre>
        carries the background. */
@@ -192,11 +194,63 @@ html body .crossnote.markdown-preview pre > code,
 html body .crossnote.markdown-preview pre code[class*="language-"] {
     --prism-foreground: light-dark(#000000, #dcdcdc);
     color: light-dark(#000000, #dcdcdc) !important;
+    /* default.css (used by HTML export) adds a white text-shadow that smears
+       tokens on the dark surface; vscode.css (preview) has none. Kill it. */
+    text-shadow: none !important;
 }
 /* Prism mutes namespace/member tokens to 70% opacity — restore full. */
 html body .crossnote.markdown-preview pre .namespace {
     opacity: 1 !important;
 }
+
+/* =====================================================================
+   TOKEN COLORS — bind Prism token classes to the VS 2019 `--prism-*`
+   palette defined above. MPE's LIVE PREVIEW loads `prism_theme/vscode.css`,
+   which maps these classes to `--prism-*` (so our palette shows). But HTML
+   EXPORT forcibly swaps in `prism_theme/default.css` (because vscode.css
+   needs `--vscode-*` webview vars) — and default.css HARD-CODES its own
+   token colors and ignores `--prism-*`. Re-declaring the same class→variable
+   mapping here (high-specificity + !important) makes the VS 2019 palette
+   apply identically in the preview AND in exported HTML / the browser.
+   Mirrors the mapping in MPE's `prism_theme/vscode.css`.
+   ===================================================================== */
+html body .crossnote.markdown-preview pre .token.comment,
+html body .crossnote.markdown-preview pre .token.prolog,
+html body .crossnote.markdown-preview pre .token.doctype,
+html body .crossnote.markdown-preview pre .token.cdata {
+    color: var(--prism-comment) !important;
+    font-style: italic;
+}
+html body .crossnote.markdown-preview pre .token.punctuation { color: var(--prism-punctuation) !important; }
+html body .crossnote.markdown-preview pre .token.tag { color: var(--prism-tag) !important; }
+html body .crossnote.markdown-preview pre .token.boolean,
+html body .crossnote.markdown-preview pre .token.constant,
+html body .crossnote.markdown-preview pre .token.number,
+html body .crossnote.markdown-preview pre .token.symbol { color: var(--prism-number) !important; }
+html body .crossnote.markdown-preview pre .token.deleted { color: var(--prism-deleted) !important; }
+html body .crossnote.markdown-preview pre .token.selector { color: var(--prism-selector) !important; }
+html body .crossnote.markdown-preview pre .token.attr-name { color: var(--prism-attr-name) !important; }
+html body .crossnote.markdown-preview pre .token.string,
+html body .crossnote.markdown-preview pre .token.char,
+html body .crossnote.markdown-preview pre .token.attr-value { color: var(--prism-string) !important; }
+html body .crossnote.markdown-preview pre .token.builtin,
+html body .crossnote.markdown-preview pre .token.class-name { color: var(--prism-type) !important; }
+html body .crossnote.markdown-preview pre .token.inserted { color: var(--prism-inserted) !important; }
+html body .crossnote.markdown-preview pre .token.operator { color: var(--prism-operator) !important; }
+html body .crossnote.markdown-preview pre .language-css .token.string,
+html body .crossnote.markdown-preview pre .style .token.string,
+html body .crossnote.markdown-preview pre .token.entity,
+html body .crossnote.markdown-preview pre .token.url { color: var(--prism-string) !important; }
+html body .crossnote.markdown-preview pre .token.atrule,
+html body .crossnote.markdown-preview pre .token.keyword { color: var(--prism-keyword) !important; }
+html body .crossnote.markdown-preview pre .token.keyword.control-flow { color: var(--prism-keyword-control) !important; }
+html body .crossnote.markdown-preview pre .token.function { color: var(--prism-function) !important; }
+html body .crossnote.markdown-preview pre .token.regex { color: var(--prism-regex) !important; }
+html body .crossnote.markdown-preview pre .token.variable { color: var(--prism-variable) !important; }
+html body .crossnote.markdown-preview pre .token.property { color: var(--prism-property) !important; }
+html body .crossnote.markdown-preview pre .token.bold,
+html body .crossnote.markdown-preview pre .token.important { font-weight: 700; }
+html body .crossnote.markdown-preview pre .token.italic { font-style: italic; }
 
 /* =====================================================================
    MERMAID DIAGRAMS — readable contrast in BOTH modes (follows THE ONE

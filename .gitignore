@@ -2,3 +2,6 @@ node_modules/
 *.vsix
 *.log
 .DS_Store
+
+# Added by MD Pretty View — Markdown Preview Enhanced pan/zoom assets
+.crossnote/

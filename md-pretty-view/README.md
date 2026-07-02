@@ -9,9 +9,16 @@ A beautiful **Visual Studio 2019** look for **[Markdown Preview Enhanced](https:
 
 ## How it works
 
-MPE reads per-user styling from `~/.crossnote/`. This extension bundles the styling
-and, on request, copies it there. It **never overwrites silently** — existing files are
-backed up to `*.bak` first.
+MPE reads per-user styling from its config folder (`~/.local/state/crossnote` on
+macOS/Linux, `~/.crossnote` on Windows, or `$XDG_CONFIG_HOME/crossnote` / the
+`markdown-preview-enhanced.configPath` location when set). This extension bundles the
+styling and, on request, copies it there. It **never overwrites silently** — existing
+files are backed up to `*.bak` first.
+
+For **Mermaid pan/zoom** the script must load from the workspace root, so applying the
+theme also copies the styling into each open workspace's `.crossnote/` folder and adds
+`.crossnote/` to that workspace's `.gitignore`. Styling still works globally without an
+open workspace; pan/zoom only works where the workspace copy is present.
 
 ## Requirements
 
@@ -25,9 +32,9 @@ Command Palette:
 
 | Command | What it does |
 |---|---|
-| **MD Pretty View: Apply Theme (Global)** | Copies the styling into `~/.crossnote/` and sets the recommended MPE settings. |
-| **MD Pretty View: Toggle Light / Dark** | Flips the `color-scheme` lever in `~/.crossnote/style.less`. |
-| **MD Pretty View: Remove Theme (Global)** | Deletes the installed files (leaves any `.bak` backups). |
+| **MD Pretty View: Apply Theme (Global)** | Copies the styling into the MPE config folder and each open workspace's `.crossnote/`, and sets the recommended MPE settings. |
+| **MD Pretty View: Toggle Light / Dark** | Flips the `color-scheme` lever in the global and workspace `style.less` copies. |
+| **MD Pretty View: Remove Theme (Global)** | Deletes the installed files, including workspace copies (leaves any `.bak` backups). |
 
 After applying, reload the window and open any `.md` → **Markdown Preview Enhanced: Open Preview to the Side**.
 
