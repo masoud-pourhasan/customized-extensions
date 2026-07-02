@@ -5,3 +5,4 @@ node_modules/
 
 # Added by MD Pretty View — Markdown Preview Enhanced pan/zoom assets
 .crossnote/
+.ignore/
