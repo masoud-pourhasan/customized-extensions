@@ -1,0 +1,32 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="256" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4F46E5"/>
+      <stop offset="1" stop-color="#9333EA"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Squircle background -->
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#bg)"/>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#sheen)"/>
+  <rect x="8.5" y="8.5" width="239" height="239" rx="55.5" stroke="#FFFFFF" stroke-opacity="0.14"/>
+
+  <!-- Markdown "M" -->
+  <path d="M56 180 V80 L96 128 L136 80 V180"
+        stroke="#FFFFFF" stroke-width="20"
+        stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Down arrow -->
+  <path d="M180 80 V150" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round"/>
+  <path d="M156 128 L180 154 L204 128"
+        stroke="#FFFFFF" stroke-width="20"
+        stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Sparkle ("pretty") -->
+  <path d="M204 40 C206 54 210 58 224 60 C210 62 206 66 204 80 C202 66 198 62 184 60 C198 58 202 54 204 40 Z"
+        fill="#FFFFFF" fill-opacity="0.95"/>
+</svg>

@@ -1,0 +1,386 @@
+/* =====================================================================
+   Markdown Preview Enhanced — REPO-LOCAL custom styling (single source)
+   ---------------------------------------------------------------------
+   Tracked in git at `<repo>/.crossnote/style.less`. MPE auto-reads and
+   live-reloads it, and it overrides the global `~/.crossnote/style.less`.
+
+   ╔═══════════════════════════════════════════════════════════════════╗
+   ║  THE ONE LEVER — change the single word below to flip EVERYTHING   ║
+   ║  (page background, text, headings, blockquotes, AND the code       ║
+   ║  palette). Fully INDEPENDENT of the VS Code editor theme and of    ║
+   ║  the MPE previewTheme.                                             ║
+   ║                                                                    ║
+   ║        html { color-scheme: dark; }   ←  use `dark` or `light`     ║
+   ╚═══════════════════════════════════════════════════════════════════╝
+
+   How it works: every color uses CSS `light-dark(LIGHTvalue, DARKvalue)`,
+   which resolves from the `color-scheme` set on <html>. So one keyword
+   switches the whole preview — no dependency on any external theme.
+
+   To reuse in a NEW repo: copy this `.crossnote/` folder + the
+   `markdown-preview-enhanced.*` keys from `.vscode/settings.json`.
+   ===================================================================== */
+
+/* ─────────────  THE ONE LEVER  ───────────── */
+/* Set on html, body AND the preview root: VS Code injects an inline
+   `color-scheme` on <html> (from the workbench theme) that would otherwise
+   override a stylesheet rule on html alone. Setting it on body + the
+   container makes `light-dark()` resolve from there regardless. */
+html, body, .crossnote.markdown-preview { color-scheme: dark; }   /* ← change to `light` or `dark` */
+
+/* Fill the whole webview surface with the themed background */
+html, body {
+    background: light-dark(#ffffff, #1e1e1e) !important;
+}
+
+.crossnote.markdown-preview {
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 15px;   /* slightly larger base; headings/code scale via em */
+    line-height: 1.65;
+    background: light-dark(#ffffff, #1e1e1e) !important;
+    color: light-dark(#24292f, #e6e6e6) !important;
+
+    /* --- Body text --- */
+    p, li, td, th, strong, em { color: light-dark(#24292f, #e6e6e6) !important; }
+    strong { color: light-dark(#000000, #ffffff) !important; }
+
+    /* --- Headings (blue accent, adapts per mode) --- */
+    h1, h2, h3, h4, h5, h6 {
+        font-weight: 700;
+        line-height: 1.3;
+        color: light-dark(#0969da, #4fc3f7) !important;
+    }
+    h1 {
+        border-bottom: 2px solid light-dark(#0969da, #4fc3f7);
+        padding-bottom: 0.3em;
+    }
+    h2 {
+        border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+        padding-bottom: 0.25em;
+    }
+
+    /* --- Links --- */
+    a { color: light-dark(#0969da, #4fc3f7) !important; text-decoration: none; }
+    a:hover { color: light-dark(#0a5cc0, #81d4fa) !important; text-decoration: underline; }
+
+    /* --- Blockquotes --- */
+    blockquote {
+        border-left: 4px solid light-dark(#0969da, #4fc3f7);
+        background: light-dark(rgba(9, 105, 218, 0.06), rgba(79, 195, 247, 0.08));
+        color: light-dark(#57606a, #b8c4cc) !important;
+        border-radius: 0 4px 4px 0;
+        padding: 0.4em 1.2em;
+    }
+    blockquote p { color: light-dark(#57606a, #b8c4cc) !important; }
+
+    /* --- Inline code (not fenced blocks) --- */
+    *:not(pre) > code {
+        color: light-dark(#0969da, #4fc3f7) !important;
+        background: light-dark(rgba(9, 105, 218, 0.08), rgba(79, 195, 247, 0.10)) !important;
+        padding: 0.15em 0.4em;
+        border-radius: 4px;
+        font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+    }
+
+    /* --- Tables --- */
+    table { border-collapse: collapse; }
+    table th {
+        background: light-dark(rgba(9, 105, 218, 0.08), rgba(79, 195, 247, 0.12)) !important;
+        color: light-dark(#0969da, #4fc3f7) !important;
+        border: 1px solid rgba(128, 128, 128, 0.3);
+        padding: 0.5em 0.9em !important;
+    }
+    table td {
+        border: 1px solid rgba(128, 128, 128, 0.3);
+        padding: 0.5em 0.9em !important;
+    }
+
+    /* --- Horizontal rule --- */
+    hr { background: rgba(128, 128, 128, 0.3); border: none; height: 1px; }
+
+    /* =================================================================
+       FENCED CODE BLOCKS — Visual Studio 2019 palette that FOLLOWS THE ONE
+       LEVER: VS 2019 LIGHT theme (white bg, dark tokens) in light mode and
+       VS 2019 DARK theme (#1e1e1e bg, light tokens) in dark mode. Prism
+       `--prism-*` vars use `light-dark(LIGHT, DARK)` so both palettes are
+       authentic to their respective VS theme.
+       ================================================================= */
+    pre {
+        border-left: 4px solid light-dark(#0000ff, #569cd6);   /* VS keyword-blue accent, per mode */
+        border-radius: 6px;
+    }
+    pre[class*="language-"],
+    pre.sourceCode,
+    pre {
+        padding: 1em 1.2em !important;
+        /* Code surface follows THE ONE LEVER but is nudged slightly off the
+           page background for distinguishability: a soft gray in light mode,
+           a touch lighter than #1e1e1e in dark mode. */
+        background: light-dark(#f3f4f6, #262626) !important;
+        color:      light-dark(#000000, #dcdcdc) !important;
+
+        /* ── Visual Studio 2019 palette — light-dark(LIGHT theme, DARK theme) ── */
+        --prism-foreground:      light-dark(#000000, #dcdcdc);
+        --prism-background:      light-dark(#f3f4f6, #262626);
+        --prism-comment:         light-dark(#008000, #57a64a);
+        --prism-string:          light-dark(#a31515, #d69d85);
+        --prism-keyword:         light-dark(#0000ff, #569cd6);
+        --prism-keyword-control: light-dark(#0000ff, #569cd6);
+        --prism-function:        light-dark(#74531f, #dcdcaa);
+        --prism-number:          light-dark(#098658, #b5cea8);
+        --prism-type:            light-dark(#2b91af, #4ec9b0);
+        --prism-variable:        light-dark(#1f377f, #9cdcfe);
+        --prism-constant:        light-dark(#0070c1, #4fc1ff);
+        --prism-tag:             light-dark(#800000, #569cd6);
+        --prism-attr-name:       light-dark(#ff0000, #9cdcfe);
+        --prism-attr-value:      light-dark(#0000ff, #d69d85);
+        --prism-punctuation:     light-dark(#000000, #dcdcdc);
+        --prism-operator:        light-dark(#000000, #b4b4b4);
+        --prism-regex:           light-dark(#811f3f, #d16969);
+        --prism-property:        light-dark(#1f377f, #9cdcfe);
+        --prism-selector:        light-dark(#800000, #d7ba7d);
+    }
+    /* The <code> inside a fenced block must be transparent — only the <pre>
+       carries the background. */
+    pre > code,
+    pre code[class*="language-"] {
+        background: transparent !important;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+}
+
+/* =====================================================================
+   GUARANTEED CODE-BLOCK PADDING — high-specificity, theme-load-order proof
+   MPE's bundled prism/github themes set `pre{padding:1em}`; this rule
+   (prefixed with `html body`) outranks them so the left/right padding
+   always matches the blockquotes' 1.2em.
+   ===================================================================== */
+html body .crossnote.markdown-preview pre,
+html body .crossnote.markdown-preview pre[class*="language-"],
+html body .crossnote.markdown-preview pre.sourceCode {
+    padding: 1em 1.2em !important;
+}
+
+/* =====================================================================
+   ALIGN CODE BLOCKS WITH BLOCKQUOTES — pin both to the same left/right
+   edge so the fenced code blocks line up with the `>` quote boxes.
+   With matching 4px border-left + 1.2em padding-left, the box edges AND
+   the inner text of quotes and code blocks align exactly.
+   ===================================================================== */
+html body .crossnote.markdown-preview blockquote,
+html body .crossnote.markdown-preview pre,
+html body .crossnote.markdown-preview pre[class*="language-"],
+html body .crossnote.markdown-preview pre.sourceCode {
+    margin-left: 1.5em !important;
+    margin-right: 0 !important;
+}
+
+/* =====================================================================
+   VS 2019 FOREGROUND — high-specificity, follows THE ONE LEVER.
+   MPE's prism theme binds `--prism-foreground` to the editor theme, so
+   un-classed plain identifiers (Console, Thread, locals…) would otherwise
+   drift. Pin them to VS 2019 plain-text: black in light, grey in dark.
+   Specific `.token.*` colors still win, so syntax highlighting is intact.
+   ===================================================================== */
+html body .crossnote.markdown-preview pre[class*="language-"],
+html body .crossnote.markdown-preview pre.sourceCode,
+html body .crossnote.markdown-preview pre,
+html body .crossnote.markdown-preview pre > code,
+html body .crossnote.markdown-preview pre code[class*="language-"] {
+    --prism-foreground: light-dark(#000000, #dcdcdc);
+    color: light-dark(#000000, #dcdcdc) !important;
+}
+/* Prism mutes namespace/member tokens to 70% opacity — restore full. */
+html body .crossnote.markdown-preview pre .namespace {
+    opacity: 1 !important;
+}
+
+/* =====================================================================
+   MERMAID DIAGRAMS — readable contrast in BOTH modes (follows THE ONE
+   LEVER). Mermaid renders its own SVG whose text otherwise inherits the
+   page's light foreground, so labels vanish on the dark background and
+   wash out on the light one. These high-specificity rules pin explicit
+   fills/strokes/colors via `light-dark(LIGHT, DARK)` so every node,
+   subgraph, edge, edge-label and sequence message stays legible.
+   Applies to flowcharts AND sequence diagrams.
+   ===================================================================== */
+html body .crossnote.markdown-preview .mermaid {
+
+    /* ── Flowchart node shapes (rect / circle / hexagon / cylinder …) ── */
+    .node rect,
+    .node circle,
+    .node ellipse,
+    .node polygon,
+    .node path {
+        fill:   light-dark(#eef2ff, #2a2f3a) !important;
+        stroke: light-dark(#4f46e5, #7c83e8) !important;
+    }
+
+    /* ── Node label text (HTML labels + SVG fallback) ── */
+    .nodeLabel,
+    .nodeLabel *,
+    .node .label,
+    .node text,
+    span.nodeLabel {
+        color: light-dark(#1f2328, #e6e6e6) !important;
+        fill:  light-dark(#1f2328, #e6e6e6) !important;
+    }
+
+    /* ── Subgraph (cluster) container + title ── */
+    .cluster rect {
+        fill:   light-dark(#f1f5f9, #20242c) !important;
+        stroke: light-dark(#94a3b8, #4b5563) !important;
+    }
+    .cluster-label,
+    .cluster-label *,
+    .cluster text,
+    .cluster span {
+        color: light-dark(#0f172a, #f1f5f9) !important;
+        fill:  light-dark(#0f172a, #f1f5f9) !important;
+    }
+
+    /* ── Edges / connector lines ── */
+    .edgePath .path,
+    .flowchart-link,
+    .relation {
+        stroke: light-dark(#475569, #b8c4cc) !important;
+    }
+    /* Arrowheads */
+    .arrowheadPath,
+    marker path,
+    defs marker path {
+        fill:   light-dark(#475569, #b8c4cc) !important;
+        stroke: light-dark(#475569, #b8c4cc) !important;
+    }
+
+    /* ── Edge labels — give them a page-matching backdrop so text reads ── */
+    .edgeLabel,
+    .edgeLabel *,
+    .edgeLabel p,
+    .edgeLabel span,
+    .edgeLabel div {
+        color: light-dark(#24292f, #e6e6e6) !important;
+        fill:  light-dark(#24292f, #e6e6e6) !important;
+        background-color: light-dark(#ffffff, #1e1e1e) !important;
+    }
+    .edgeLabel rect,
+    .edgeLabel .label-container {
+        fill:    light-dark(#ffffff, #1e1e1e) !important;
+        opacity: 1 !important;
+    }
+
+    /* ── Sequence diagrams: actors / lifelines ── */
+    .actor {
+        fill:   light-dark(#eef2ff, #2a2f3a) !important;
+        stroke: light-dark(#4f46e5, #7c83e8) !important;
+    }
+    text.actor,
+    text.actor > tspan {
+        fill:   light-dark(#1f2328, #e6e6e6) !important;
+        stroke: none !important;
+    }
+    .actor-line {
+        stroke: light-dark(#94a3b8, #6b7280) !important;
+    }
+
+    /* ── Sequence diagrams: message lines + text ── */
+    .messageLine0,
+    .messageLine1 {
+        stroke: light-dark(#475569, #b8c4cc) !important;
+    }
+    .messageText,
+    .messageText > tspan {
+        fill:   light-dark(#24292f, #e6e6e6) !important;
+        stroke: none !important;
+    }
+
+    /* ── Sequence diagrams: notes ── */
+    .note {
+        fill:   light-dark(#fff7c2, #4a4320) !important;
+        stroke: light-dark(#d4b106, #a68b00) !important;
+    }
+    .noteText,
+    .noteText > tspan {
+        fill: light-dark(#1f2328, #f7f3d0) !important;
+    }
+
+    /* ── Sequence diagrams: loops / labels / sequence numbers ── */
+    .loopText,
+    .loopText > tspan,
+    .labelText,
+    .labelText > tspan,
+    .sequenceNumber {
+        fill: light-dark(#24292f, #e6e6e6) !important;
+    }
+    .loopLine {
+        stroke: light-dark(#94a3b8, #6b7280) !important;
+    }
+}
+
+/* =====================================================================
+   HTML EXPORT LAYOUT FIX  ("Open in Browser" / Export → HTML)
+   ---------------------------------------------------------------------
+   MPE's EXPORT-only stylesheet sizes `.markdown-preview` with
+   `box-sizing: border-box` AND a viewport-relative horizontal padding of
+   `calc(50% - 457px + 2em)` (and, with the TOC sidebar, `left:300px;
+   width:calc(100% - 300px)`). Combined with our fixed `max-width:1200px`,
+   on a wide browser window that proportional padding consumes almost the
+   entire 1200px box, collapsing the text column to a sliver — the “one
+   character per line” break seen in the browser. (The in-editor webview
+   is unaffected because the `body[for=html-export]` selector is
+   export-only.)  Neutralise the export offset/padding and center a plain,
+   fixed-width box instead.
+   ===================================================================== */
+body[for="html-export"] .crossnote.markdown-preview,
+body[for="html-export"]:not([data-presentation-mode]) .crossnote.markdown-preview {
+    left: auto !important;
+    width: auto !important;
+    max-width: 1200px !important;
+    margin: 0 auto !important;
+    padding: 2em !important;
+    box-sizing: border-box !important;
+}
+
+/* =====================================================================
+   MERMAID PAN / ZOOM viewport  (paired with .crossnote/mermaid-panzoom.js)
+   The script wraps each rendered <svg> in `.mmd-pz` and transforms the SVG.
+   ===================================================================== */
+.mmd-pz {
+    position: relative;
+    overflow: hidden;
+    max-width: 100%;
+    resize: vertical;                 /* drag the bottom edge to grow the viewport */
+    border: 1px dashed rgba(128, 128, 128, 0.35);
+    border-radius: 6px;
+}
+.mmd-pz > svg { cursor: grab; will-change: transform; }
+.mmd-pz.-grabbing > svg { cursor: grabbing; }
+.mmd-pz-hint {
+    position: absolute; top: 4px; right: 8px;
+    font: 11px/1.4 "Segoe UI", sans-serif;
+    color: light-dark(#57606a, #9aa4ad);
+    opacity: 0; transition: opacity .15s ease; pointer-events: none;
+    user-select: none;
+}
+.mmd-pz:hover .mmd-pz-hint { opacity: 1; }
+.mmd-pz-ctl {
+    position: absolute; top: 6px; left: 6px;
+    display: flex; gap: 4px; z-index: 2;
+    opacity: 0; transition: opacity .15s ease;
+}
+.mmd-pz:hover .mmd-pz-ctl { opacity: 1; }
+.mmd-pz-ctl button {
+    width: 26px; height: 26px; padding: 0;
+    font: 15px/1 "Segoe UI", sans-serif; cursor: pointer;
+    border-radius: 5px;
+    color: light-dark(#24292f, #e6e6e6);
+    background: light-dark(#ffffff, #2a2f3a);
+    border: 1px solid light-dark(#d0d7de, #4b5563);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+}
+.mmd-pz-ctl button:hover {
+    background: light-dark(#f3f4f6, #3a4150);
+}

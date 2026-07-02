@@ -1,0 +1,66 @@
+{
+  "name": "md-pretty-view",
+  "displayName": "MD Pretty View",
+  "description": "A beautiful Visual Studio 2019 look for Markdown Preview Enhanced: one-lever light/dark theme, VS2019 code palette, styled Mermaid diagrams, and Mermaid pan/zoom. Installs the styling into your global ~/.crossnote config.",
+  "version": "0.0.1",
+  "publisher": "your-publisher-id",
+  "license": "MIT",
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Themes",
+    "Other"
+  ],
+  "keywords": [
+    "markdown",
+    "markdown-preview-enhanced",
+    "mermaid",
+    "visual studio 2019",
+    "theme"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_GITHUB/md-pretty-view.git"
+  },
+  "scripts": {
+    "icon": "node scripts/render-icon.mjs"
+  },
+  "extensionDependencies": [
+    "shd101wyy.markdown-preview-enhanced"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "mdPrettyView.apply",
+        "title": "MD Pretty View: Apply Theme (Global)"
+      },
+      {
+        "command": "mdPrettyView.remove",
+        "title": "MD Pretty View: Remove Theme (Global)"
+      },
+      {
+        "command": "mdPrettyView.toggleMode",
+        "title": "MD Pretty View: Toggle Light / Dark"
+      }
+    ],
+    "configuration": {
+      "title": "MD Pretty View",
+      "properties": {
+        "mdPrettyView.applyMpeSettings": {
+          "type": "boolean",
+          "default": true,
+          "description": "When applying the theme, also set the recommended markdown-preview-enhanced.* settings globally (previewTheme none.css, codeBlockTheme vscode.css). Note: enabling Mermaid pan/zoom also turns on markdown-preview-enhanced.enableScriptExecution."
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2"
+  }
+}
