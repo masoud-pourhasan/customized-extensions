@@ -22,6 +22,15 @@ const ASSET_FILES = [
   "config.js",
 ];
 
+// Files copied into each workspace's `.crossnote/`. Deliberately EXCLUDES
+// style.less: the light/dark lever lives ONLY in the global style.less so it has
+// a single source of truth. MPE concatenates a workspace style.less AFTER the
+// global one, so a second copy of the lever would override the global toggle
+// (last declaration wins) — making "Toggle Light/Dark" appear stuck. The
+// workspace still needs the pan/zoom script plus parser/head/config so MPE's
+// per-workspace config override doesn't clobber the global parser/head/mermaid.
+const WORKSPACE_ASSET_FILES = ASSET_FILES.filter((f) => f !== "style.less");
+
 const DISMISS_KEY = "mdPrettyView.applyPromptDismissed";
 
 /**
@@ -83,6 +92,10 @@ function ensureGitignore(folderFsPath) {
  * file's folder, never the global config folder. Existing differing files are
  * backed up. `.crossnote/` is added to the workspace `.gitignore`.
  *
+ * NOTE: style.less is intentionally NOT copied here (see WORKSPACE_ASSET_FILES) so
+ * the light/dark lever stays single-sourced in the global style.less; any old
+ * workspace style.less is removed to undo the earlier behavior.
+ *
  * @returns {string[]} absolute paths of workspace folders written to
  */
 function applyWorkspaceCopies(context) {
@@ -95,7 +108,7 @@ function applyWorkspaceCopies(context) {
     const dst = path.join(root, ".crossnote");
     try {
       fs.mkdirSync(dst, { recursive: true });
-      for (const f of ASSET_FILES) {
+      for (const f of WORKSPACE_ASSET_FILES) {
         const dstFile = path.join(dst, f);
         const srcFile = path.join(src, f);
         if (
@@ -105,6 +118,14 @@ function applyWorkspaceCopies(context) {
           fs.copyFileSync(dstFile, `${dstFile}.${stamp}.bak`);
         }
         fs.copyFileSync(srcFile, dstFile);
+      }
+      // Migration: remove any real workspace style.less shipped by older versions
+      // — its duplicate color-scheme lever would override the global toggle.
+      try {
+        const wsStyle = path.join(dst, "style.less");
+        if (fs.existsSync(wsStyle)) fs.unlinkSync(wsStyle);
+      } catch {
+        /* ignore */
       }
       ensureGitignore(root);
       written.push(root);
@@ -248,19 +269,21 @@ async function removeTheme() {
   );
 }
 
-/** All style.less files the theme controls: the global one plus any workspace copies. */
+/**
+ * The single style.less that owns the light/dark lever: the GLOBAL copy.
+ * The lever is intentionally NOT duplicated into workspace `.crossnote/` copies
+ * (MPE concatenates those after the global CSS, so a second lever would win and
+ * make this toggle appear stuck). Kept as an array for the existing callers.
+ */
 function styleLessFiles() {
-  const files = [path.join(crossnoteDir(), "style.less")];
-  for (const folder of vscode.workspace.workspaceFolders || []) {
-    files.push(path.join(folder.uri.fsPath, ".crossnote", "style.less"));
-  }
-  return files.filter((f) => fs.existsSync(f));
+  const f = path.join(crossnoteDir(), "style.less");
+  return fs.existsSync(f) ? [f] : [];
 }
 
 /**
- * Flip the single `color-scheme` lever in every style.less the theme controls.
- * MPE concatenates the global and workspace CSS, so both copies must be flipped
- * together or the later one would win and the toggle would appear to do nothing.
+ * Flip the single `color-scheme` lever in the global style.less. Because the
+ * lever lives only in the global copy, this is the one source of truth and the
+ * toggle is independent of the VS Code editor theme.
  */
 async function toggleMode() {
   const files = styleLessFiles();
@@ -270,7 +293,9 @@ async function toggleMode() {
     );
     return;
   }
-  const re = /(color-scheme:\s*)(dark|light)(\s*;)/;
+  // Match the ACTUAL lever rule (scoped by the `.crossnote.markdown-preview`
+  // selector) rather than any `color-scheme:` text that may appear in comments.
+  const re = /(\.crossnote\.markdown-preview\s*\{\s*color-scheme:\s*)(dark|light)/;
   // Determine the current mode from the first file that has the lever.
   let current;
   for (const file of files) {
@@ -288,7 +313,7 @@ async function toggleMode() {
   for (const file of files) {
     try {
       const css = fs.readFileSync(file, "utf8");
-      if (re.test(css)) fs.writeFileSync(file, css.replace(re, `$1${next}$3`), "utf8");
+      if (re.test(css)) fs.writeFileSync(file, css.replace(re, `$1${next}`), "utf8");
     } catch {
       /* ignore individual file failures */
     }
