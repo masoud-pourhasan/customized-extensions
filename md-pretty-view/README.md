@@ -1,9 +1,9 @@
 # MD Pretty View
 
-A beautiful **Visual Studio 2019** look for **[Markdown Preview Enhanced](https://marketplace.visualstudio.com/items?itemName=shd101wyy.markdown-preview-enhanced)** (MPE):
+A clean, polished look for **[Markdown Preview Enhanced](https://marketplace.visualstudio.com/items?itemName=shd101wyy.markdown-preview-enhanced)** (MPE):
 
-- **One-lever light/dark** — a single `color-scheme` keyword flips the whole page *and* the code palette, independent of your VS Code editor theme.
-- **VS 2019 code palette** — authentic VS2019 Light / Dark syntax colors in fenced code blocks.
+- **One-lever light/dark** — a single `color-scheme` keyword flips the whole page *and* the code surface, independent of your VS Code editor theme.
+- **Editor-style C# palette** — a crisp Light / Dark syntax palette for C# code blocks. Every other language keeps its own highlighter colors, so the theme works for any stack.
 - **Styled Mermaid diagrams** — readable flowcharts and sequence diagrams in both modes.
 - **Mermaid pan / zoom** — drag to pan, Ctrl/⌘+scroll (or +/− buttons) to zoom, double-click to reset, and a **⛶ fit-to-screen** button that fills the viewport with the whole diagram crisply (Esc to exit). Works in the live preview and in HTML export.
 

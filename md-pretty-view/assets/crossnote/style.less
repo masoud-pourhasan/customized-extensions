@@ -101,14 +101,14 @@ html, body {
     hr { background: rgba(128, 128, 128, 0.3); border: none; height: 1px; }
 
     /* =================================================================
-       FENCED CODE BLOCKS — Visual Studio 2019 palette that FOLLOWS THE ONE
-       LEVER: VS 2019 LIGHT theme (white bg, dark tokens) in light mode and
-       VS 2019 DARK theme (#1e1e1e bg, light tokens) in dark mode. Prism
-       `--prism-*` vars use `light-dark(LIGHT, DARK)` so both palettes are
-       authentic to their respective VS theme.
+       FENCED CODE BLOCKS — a clean code surface that follows THE ONE LEVER
+       (a soft gray in light mode, a touch lighter than the page in dark
+       mode). Syntax-token colors are applied per language: C# uses the
+       bundled palette (see the "C# SYNTAX PALETTE" block below); every other
+       language keeps its own highlighter's colors.
        ================================================================= */
     pre {
-        border-left: 4px solid light-dark(#0000ff, #569cd6);   /* VS keyword-blue accent, per mode */
+        border-left: 4px solid light-dark(#0000ff, #569cd6);   /* accent, per mode */
         border-radius: 6px;
     }
     pre[class*="language-"],
@@ -117,32 +117,9 @@ html, body {
         padding: 1em 1.2em !important;
         /* Code surface follows THE ONE LEVER but is nudged slightly off the
            page background for distinguishability: a soft gray in light mode,
-           a touch lighter than #1e1e1e in dark mode. */
+           a touch lighter than the page background in dark mode. */
         background: light-dark(#f3f4f6, #262626) !important;
         color:      light-dark(#000000, #dcdcdc) !important;
-
-        /* ── Visual Studio 2019 palette — light-dark(LIGHT theme, DARK theme) ── */
-        --prism-foreground:      light-dark(#000000, #dcdcdc);
-        --prism-background:      light-dark(#f3f4f6, #262626);
-        --prism-comment:         light-dark(#008000, #57a64a);
-        --prism-string:          light-dark(#a31515, #d69d85);
-        --prism-keyword:         light-dark(#0000ff, #569cd6);
-        --prism-keyword-control: light-dark(#0000ff, #569cd6);
-        --prism-function:        light-dark(#74531f, #dcdcaa);
-        --prism-number:          light-dark(#098658, #b5cea8);
-        --prism-type:            light-dark(#2b91af, #4ec9b0);
-        --prism-variable:        light-dark(#1f377f, #9cdcfe);
-        --prism-constant:        light-dark(#0070c1, #4fc1ff);
-        --prism-tag:             light-dark(#800000, #569cd6);
-        --prism-attr-name:       light-dark(#ff0000, #9cdcfe);
-        --prism-attr-value:      light-dark(#0000ff, #d69d85);
-        --prism-punctuation:     light-dark(#000000, #dcdcdc);
-        --prism-operator:        light-dark(#000000, #b4b4b4);
-        --prism-regex:           light-dark(#811f3f, #d16969);
-        --prism-property:        light-dark(#1f377f, #9cdcfe);
-        --prism-selector:        light-dark(#800000, #d7ba7d);
-        --prism-inserted:        light-dark(#098658, #b5cea8);
-        --prism-deleted:         light-dark(#a31515, #d69d85);
     }
     /* The <code> inside a fenced block must be transparent — only the <pre>
        carries the background. */
@@ -181,11 +158,11 @@ html body .crossnote.markdown-preview pre.sourceCode {
 }
 
 /* =====================================================================
-   VS 2019 FOREGROUND — high-specificity, follows THE ONE LEVER.
-   MPE's prism theme binds `--prism-foreground` to the editor theme, so
-   un-classed plain identifiers (Console, Thread, locals…) would otherwise
-   drift. Pin them to VS 2019 plain-text: black in light, grey in dark.
-   Specific `.token.*` colors still win, so syntax highlighting is intact.
+   CODE PLAIN-TEXT FOREGROUND — high-specificity, follows THE ONE LEVER.
+   Applies to ALL languages so un-classed text stays readable on the code
+   surface (black in light mode, grey in dark). Language-specific `.token.*`
+   colors still win, so syntax highlighting is intact. Also clears the white
+   text-shadow that the export prism theme (`default.css`) adds.
    ===================================================================== */
 html body .crossnote.markdown-preview pre[class*="language-"],
 html body .crossnote.markdown-preview pre.sourceCode,
@@ -204,53 +181,70 @@ html body .crossnote.markdown-preview pre .namespace {
 }
 
 /* =====================================================================
-   TOKEN COLORS — bind Prism token classes to the VS 2019 `--prism-*`
-   palette defined above. MPE's LIVE PREVIEW loads `prism_theme/vscode.css`,
-   which maps these classes to `--prism-*` (so our palette shows). But HTML
-   EXPORT forcibly swaps in `prism_theme/default.css` (because vscode.css
-   needs `--vscode-*` webview vars) — and default.css HARD-CODES its own
-   token colors and ignores `--prism-*`. Re-declaring the same class→variable
-   mapping here (high-specificity + !important) makes the VS 2019 palette
-   apply identically in the preview AND in exported HTML / the browser.
-   Mirrors the mapping in MPE's `prism_theme/vscode.css`.
+   C# SYNTAX PALETTE — applied ONLY to C# code blocks (`language-csharp`
+   / `language-cs`). Every other language keeps its highlighter's own
+   colors: the editor theme's colors in the live preview (MPE's
+   `prism_theme/vscode.css`) and Prism's default palette in exported HTML
+   (`prism_theme/default.css`).
+
+   The palette is declared as `--prism-*` custom properties on the C# block
+   AND re-mapped onto the Prism `.token.*` classes here, because HTML EXPORT
+   swaps in `default.css`, which hard-codes its own colors and ignores
+   `--prism-*`. Re-declaring the mapping (high-specificity + !important)
+   makes the palette apply identically in preview and export. The language
+   class can sit on the <pre> or the <code>, so both are matched; the nested
+   `.token.*` rules therefore expand to descendants of either.
    ===================================================================== */
-html body .crossnote.markdown-preview pre .token.comment,
-html body .crossnote.markdown-preview pre .token.prolog,
-html body .crossnote.markdown-preview pre .token.doctype,
-html body .crossnote.markdown-preview pre .token.cdata {
-    color: var(--prism-comment) !important;
-    font-style: italic;
+html body .crossnote.markdown-preview pre[class~="language-csharp"],
+html body .crossnote.markdown-preview pre[class~="language-cs"],
+html body .crossnote.markdown-preview code[class~="language-csharp"],
+html body .crossnote.markdown-preview code[class~="language-cs"] {
+    --prism-foreground:      light-dark(#000000, #dcdcdc);
+    --prism-comment:         light-dark(#008000, #57a64a);
+    --prism-string:          light-dark(#a31515, #d69d85);
+    --prism-keyword:         light-dark(#0000ff, #569cd6);
+    --prism-keyword-control: light-dark(#0000ff, #569cd6);
+    --prism-function:        light-dark(#74531f, #dcdcaa);
+    --prism-number:          light-dark(#098658, #b5cea8);
+    --prism-type:            light-dark(#2b91af, #4ec9b0);
+    --prism-variable:        light-dark(#1f377f, #9cdcfe);
+    --prism-constant:        light-dark(#0070c1, #4fc1ff);
+    --prism-tag:             light-dark(#800000, #569cd6);
+    --prism-attr-name:       light-dark(#ff0000, #9cdcfe);
+    --prism-attr-value:      light-dark(#0000ff, #d69d85);
+    --prism-punctuation:     light-dark(#000000, #dcdcdc);
+    --prism-operator:        light-dark(#000000, #b4b4b4);
+    --prism-regex:           light-dark(#811f3f, #d16969);
+    --prism-property:        light-dark(#1f377f, #9cdcfe);
+    --prism-selector:        light-dark(#800000, #d7ba7d);
+    --prism-inserted:        light-dark(#098658, #b5cea8);
+    --prism-deleted:         light-dark(#a31515, #d69d85);
+
+    /* Prism token classes → the palette above (descendants of pre/code). */
+    .token.comment, .token.prolog, .token.doctype, .token.cdata {
+        color: var(--prism-comment) !important;
+        font-style: italic;
+    }
+    .token.punctuation { color: var(--prism-punctuation) !important; }
+    .token.tag { color: var(--prism-tag) !important; }
+    .token.boolean, .token.constant, .token.number, .token.symbol { color: var(--prism-number) !important; }
+    .token.deleted { color: var(--prism-deleted) !important; }
+    .token.selector { color: var(--prism-selector) !important; }
+    .token.attr-name { color: var(--prism-attr-name) !important; }
+    .token.string, .token.char, .token.attr-value { color: var(--prism-string) !important; }
+    .token.builtin, .token.class-name { color: var(--prism-type) !important; }
+    .token.inserted { color: var(--prism-inserted) !important; }
+    .token.operator { color: var(--prism-operator) !important; }
+    .token.entity, .token.url { color: var(--prism-string) !important; }
+    .token.atrule, .token.keyword { color: var(--prism-keyword) !important; }
+    .token.keyword.control-flow { color: var(--prism-keyword-control) !important; }
+    .token.function { color: var(--prism-function) !important; }
+    .token.regex { color: var(--prism-regex) !important; }
+    .token.variable { color: var(--prism-variable) !important; }
+    .token.property { color: var(--prism-property) !important; }
+    .token.bold, .token.important { font-weight: 700; }
+    .token.italic { font-style: italic; }
 }
-html body .crossnote.markdown-preview pre .token.punctuation { color: var(--prism-punctuation) !important; }
-html body .crossnote.markdown-preview pre .token.tag { color: var(--prism-tag) !important; }
-html body .crossnote.markdown-preview pre .token.boolean,
-html body .crossnote.markdown-preview pre .token.constant,
-html body .crossnote.markdown-preview pre .token.number,
-html body .crossnote.markdown-preview pre .token.symbol { color: var(--prism-number) !important; }
-html body .crossnote.markdown-preview pre .token.deleted { color: var(--prism-deleted) !important; }
-html body .crossnote.markdown-preview pre .token.selector { color: var(--prism-selector) !important; }
-html body .crossnote.markdown-preview pre .token.attr-name { color: var(--prism-attr-name) !important; }
-html body .crossnote.markdown-preview pre .token.string,
-html body .crossnote.markdown-preview pre .token.char,
-html body .crossnote.markdown-preview pre .token.attr-value { color: var(--prism-string) !important; }
-html body .crossnote.markdown-preview pre .token.builtin,
-html body .crossnote.markdown-preview pre .token.class-name { color: var(--prism-type) !important; }
-html body .crossnote.markdown-preview pre .token.inserted { color: var(--prism-inserted) !important; }
-html body .crossnote.markdown-preview pre .token.operator { color: var(--prism-operator) !important; }
-html body .crossnote.markdown-preview pre .language-css .token.string,
-html body .crossnote.markdown-preview pre .style .token.string,
-html body .crossnote.markdown-preview pre .token.entity,
-html body .crossnote.markdown-preview pre .token.url { color: var(--prism-string) !important; }
-html body .crossnote.markdown-preview pre .token.atrule,
-html body .crossnote.markdown-preview pre .token.keyword { color: var(--prism-keyword) !important; }
-html body .crossnote.markdown-preview pre .token.keyword.control-flow { color: var(--prism-keyword-control) !important; }
-html body .crossnote.markdown-preview pre .token.function { color: var(--prism-function) !important; }
-html body .crossnote.markdown-preview pre .token.regex { color: var(--prism-regex) !important; }
-html body .crossnote.markdown-preview pre .token.variable { color: var(--prism-variable) !important; }
-html body .crossnote.markdown-preview pre .token.property { color: var(--prism-property) !important; }
-html body .crossnote.markdown-preview pre .token.bold,
-html body .crossnote.markdown-preview pre .token.important { font-weight: 700; }
-html body .crossnote.markdown-preview pre .token.italic { font-style: italic; }
 
 /* =====================================================================
    MERMAID DIAGRAMS — readable contrast in BOTH modes (follows THE ONE

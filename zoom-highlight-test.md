@@ -10,7 +10,7 @@ flowchart LR
   Kafka --> ShipmentSvc
 ```
 
-## C# code block (VS2019 palette)
+## C# code block (bundled palette)
 
 ```csharp
 public sealed class OrderService
@@ -25,5 +25,32 @@ public sealed class OrderService
         await _orders.AddAsync(order, ct);
         return order.Id;
     }
+}
+```
+
+## Python code block (should keep its own highlighter colors)
+
+```python
+from dataclasses import dataclass
+
+
+@dataclass
+class Order:
+    id: str
+    total: float
+
+    def apply_discount(self, pct: float) -> float:
+        # clamp to [0, 100]
+        pct = max(0.0, min(100.0, pct))
+        return self.total * (1 - pct / 100)
+```
+
+## JavaScript code block (should keep its own highlighter colors)
+
+```javascript
+export async function placeOrder(orders, order) {
+  // idempotent create
+  await orders.add(order);
+  return order.id;
 }
 ```

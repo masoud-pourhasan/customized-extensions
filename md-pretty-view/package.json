@@ -1,7 +1,7 @@
 {
   "name": "md-pretty-view",
   "displayName": "MD Pretty View",
-  "description": "A beautiful Visual Studio 2019 look for Markdown Preview Enhanced: one-lever light/dark theme, VS2019 code palette, styled Mermaid diagrams, and Mermaid pan/zoom. Installs the styling into your Markdown Preview Enhanced config folder.",
+  "description": "A clean, polished look for Markdown Preview Enhanced: one-lever light/dark theme, an editor-style C# code palette, styled Mermaid diagrams, and Mermaid pan/zoom & fit-to-screen. Installs the styling into your Markdown Preview Enhanced config folder.",
   "version": "0.0.2",
   "publisher": "masoud-pourhasan",
   "license": "MIT",
@@ -17,7 +17,7 @@
     "markdown",
     "markdown-preview-enhanced",
     "mermaid",
-    "visual studio 2019",
+    "csharp",
     "theme"
   ],
   "repository": {

@@ -1,4 +1,4 @@
-// Markdown Preview VS2019 Theme (for Markdown Preview Enhanced)
+// MD Pretty View — a styling theme for Markdown Preview Enhanced
 // -------------------------------------------------------------
 // MPE reads per-user styling from its global config folder. VS Code extensions
 // cannot hook another extension's theme system directly, so this extension ships
@@ -211,7 +211,7 @@ async function applyMpeSettings() {
 async function removeTheme() {
   const dir = crossnoteDir();
   const confirm = await vscode.window.showWarningMessage(
-    `Remove the VS2019 theme files from ${dir}? Any .bak backups are left in place.`,
+    `Remove the MD Pretty View theme files from ${dir}? Any .bak backups are left in place.`,
     { modal: true },
     "Remove"
   );
@@ -244,7 +244,7 @@ async function removeTheme() {
   }
 
   vscode.window.showInformationMessage(
-    `VS2019 theme removed from ${dir} and open workspace folders. Reload the MPE preview to see the change.`
+    `MD Pretty View theme removed from ${dir} and open workspace folders. Reload the MPE preview to see the change.`
   );
 }
 
@@ -309,7 +309,7 @@ function activate(context) {
   if (!isInstalled(context) && !context.globalState.get(DISMISS_KEY)) {
     vscode.window
       .showInformationMessage(
-        "Apply the Visual Studio 2019 theme to your Markdown Preview Enhanced previews?",
+        "Apply the MD Pretty View theme to your Markdown Preview Enhanced previews?",
         "Apply",
         "Not now",
         "Don't ask again"
