@@ -3,7 +3,7 @@
   "displayName": "MD Pretty View",
   "description": "A beautiful Visual Studio 2019 look for Markdown Preview Enhanced: one-lever light/dark theme, VS2019 code palette, styled Mermaid diagrams, and Mermaid pan/zoom. Installs the styling into your global ~/.crossnote config.",
   "version": "0.0.1",
-  "publisher": "your-publisher-id",
+  "publisher": "masoud-pourhasan",
   "license": "MIT",
   "icon": "icon.png",
   "engines": {
@@ -22,7 +22,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_GITHUB/md-pretty-view.git"
+    "url": "https://github.com/masoud-pourhasan/my-vs-code-extensions.git"
   },
   "scripts": {
     "icon": "node scripts/render-icon.mjs"
