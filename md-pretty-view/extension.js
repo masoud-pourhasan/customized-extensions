@@ -1,10 +1,12 @@
 // Markdown Preview VS2019 Theme (for Markdown Preview Enhanced)
 // -------------------------------------------------------------
-// MPE reads per-user styling from ~/.crossnote/. VS Code extensions cannot
-// hook another extension's theme system directly, so this extension ships the
-// styling as bundled assets and copies them into the user's global
-// ~/.crossnote/ folder on request. Existing files are backed up (never
-// overwritten silently).
+// MPE reads per-user styling from its global config folder. VS Code extensions
+// cannot hook another extension's theme system directly, so this extension ships
+// the styling as bundled assets and copies them into that folder on request.
+// The folder location is resolved by crossnoteDir() to match MPE's own logic
+// (it is NOT always ~/.crossnote — on macOS/Linux it is ~/.local/state/crossnote
+// unless XDG_CONFIG_HOME or the configPath setting is set). Existing files are
+// backed up (never overwritten silently).
 
 const vscode = require("vscode");
 const fs = require("fs");
@@ -22,8 +24,29 @@ const ASSET_FILES = [
 
 const DISMISS_KEY = "mdPrettyView.applyPromptDismissed";
 
+/**
+ * Resolve the folder MPE actually reads its global config from.
+ * This MUST mirror crossnote's own resolution logic, otherwise we write
+ * files MPE never loads. As of MPE 0.8.x the order is:
+ *   1. `markdown-preview-enhanced.configPath` setting (with ~ expansion)
+ *   2. Windows            -> ~/.crossnote
+ *   3. $XDG_CONFIG_HOME    -> $XDG_CONFIG_HOME/crossnote
+ *   4. otherwise (mac/*nix) -> ~/.local/state/crossnote
+ */
 function crossnoteDir() {
-  return path.join(os.homedir(), ".crossnote");
+  const configPath = vscode.workspace
+    .getConfiguration("markdown-preview-enhanced")
+    .get("configPath", "");
+  if (typeof configPath === "string" && configPath !== "") {
+    return configPath.replace(/^~/, os.homedir());
+  }
+  if (process.platform === "win32") {
+    return path.join(os.homedir(), ".crossnote");
+  }
+  if (typeof process.env.XDG_CONFIG_HOME === "string" && process.env.XDG_CONFIG_HOME !== "") {
+    return path.resolve(process.env.XDG_CONFIG_HOME, "crossnote");
+  }
+  return path.resolve(os.homedir(), ".local/state/crossnote");
 }
 
 function assetsDir(context) {
@@ -63,7 +86,7 @@ async function applyTheme(context) {
 
   if (clashes.length) {
     const pick = await vscode.window.showWarningMessage(
-      `~/.crossnote already contains custom files (${clashes.join(", ")}). ` +
+      `${dir} already contains custom files (${clashes.join(", ")}). ` +
         `Overwrite them? A timestamped .bak copy of each will be created first.`,
       { modal: true },
       "Overwrite (with backup)"
@@ -85,7 +108,7 @@ async function applyTheme(context) {
       fs.copyFileSync(path.join(src, f), dst);
     }
   } catch (err) {
-    vscode.window.showErrorMessage(`Failed to write ~/.crossnote: ${err.message}`);
+    vscode.window.showErrorMessage(`Failed to write ${dir}: ${err.message}`);
     return;
   }
 
@@ -94,7 +117,7 @@ async function applyTheme(context) {
   }
 
   const reload = await vscode.window.showInformationMessage(
-    "MD Pretty View theme applied to ~/.crossnote. Reload window to see it in the MPE preview.",
+    `MD Pretty View theme applied to ${dir}. Reload window to see it in the MPE preview.`,
     "Reload Window"
   );
   if (reload === "Reload Window") {
@@ -117,7 +140,7 @@ async function applyMpeSettings() {
 async function removeTheme() {
   const dir = crossnoteDir();
   const confirm = await vscode.window.showWarningMessage(
-    "Remove the VS2019 theme files from ~/.crossnote? Any .bak backups are left in place.",
+    `Remove the VS2019 theme files from ${dir}? Any .bak backups are left in place.`,
     { modal: true },
     "Remove"
   );
@@ -131,7 +154,7 @@ async function removeTheme() {
     }
   }
   vscode.window.showInformationMessage(
-    "VS2019 theme removed from ~/.crossnote. Reload the MPE preview to see the change."
+    `VS2019 theme removed from ${dir}. Reload the MPE preview to see the change.`
   );
 }
 
