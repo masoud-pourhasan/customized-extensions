@@ -41,11 +41,11 @@ viewport (Esc to exit).
 
 ### Math (KaTeX)
 
-Inline math renders too: the toggle cost is $O(1)$ per switch.
+Inline and block math render cleanly in both themes via KaTeX.
 
-$$
-\text{contrast}(fg, bg) = \frac{L_{\max} + 0.05}{L_{\min} + 0.05}
-$$
+#### Equations
+
+<img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/math-light-1.png" alt="KaTeX math — light theme" width="49%" /> <img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/math-dark-1.png" alt="KaTeX math — dark theme" width="49%" />
 
 ### Horizontal rule & footnote
 

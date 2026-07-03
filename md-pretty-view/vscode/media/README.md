@@ -10,6 +10,8 @@ Drop the following files here (keep the exact names — the README points at the
 |---|---|---|
 | `mermaid-panzoom.gif` | Mermaid pan / zoom & fit-to-screen | Open a `.md` with a Mermaid diagram in the MPE preview. Drag to pan, ⌘/Ctrl+scroll to zoom, click **⛶** to fit, press Esc. |
 | `light-dark-toggle.gif` | One-lever light / dark | Run **MD Pretty View: Toggle Light / Dark** a couple of times so the whole page + code blocks flip together. |
+| `math-light-1.png` | Math (KaTeX) — light theme | Screenshot the rendered inline + block math from the example page in light mode. |
+| `math-dark-1.png` | Math (KaTeX) — dark theme | Same math screenshot in dark mode. |
 
 ## Recording tips
 
