@@ -3,8 +3,8 @@ name: Publish MD Pretty View
 # Publishes the VS Code extension to the Visual Studio Marketplace when a
 # version tag is pushed. Tag scheme (monorepo-friendly): md-pretty-view-vX.Y.Z
 #
-#   git tag md-pretty-view-v0.0.4
-#   git push origin md-pretty-view-v0.0.4
+#   git tag md-pretty-view-v0.0.x
+#   git push origin md-pretty-view-v0.0.x
 #
 # Requires the repository secret VSCE_PAT (a Visual Studio Marketplace
 # Personal Access Token with Marketplace > Manage scope).
