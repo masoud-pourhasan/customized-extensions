@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.0.4
+
+- Maintenance: automated Marketplace publishing via CI, and moved the theme assets to a shared source of truth. No user-facing changes.
+
 ## 0.0.3
 
 - Improve Marketplace discoverability (more descriptive search keywords) and generalize the wording/description.
