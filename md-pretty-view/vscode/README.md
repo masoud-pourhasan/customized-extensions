@@ -6,13 +6,13 @@ A clean, polished look for **[Markdown Preview Enhanced](https://marketplace.vis
 
 Drag to pan, Ctrl/⌘+scroll (or the +/− buttons) to zoom, double-click to reset, and a **⛶ fit-to-screen** button that fills the viewport with the whole diagram crisply (Esc to exit). Works in the live preview *and* in HTML export.
 
-<img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/mermaid-panzoom.gif" alt="Mermaid pan, zoom and fit-to-screen demo" width="720" />
+<!-- <img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/mermaid-panzoom.gif" alt="Mermaid pan, zoom and fit-to-screen demo" width="100%" /> -->
 
 ### One-lever light / dark
 
 A single switch flips the whole page *and* the code surface together, independent of your VS Code editor theme, with a consistent syntax palette that stays readable in both modes.
 
-<img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/light-dark-toggle.gif" alt="One-lever light and dark mode toggle demo" width="720" />
+<!-- <img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/light-dark-toggle.gif" alt="One-lever light and dark mode toggle demo" width="100%" /> -->
 
 ## Example page
 
@@ -25,9 +25,9 @@ exported HTML, regardless of your VS Code theme.
 
 #### Codes
 
-<img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/code-light-1.png" alt="C#, TypeScript, Python, Bash — light theme" width="420" /> <img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/code-dark-1.png" alt="C#, TypeScript, Python, Bash — dark theme" width="420" />
+<img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/code-light-1.png" alt="C#, TypeScript, Python, Bash — light theme" width="49%" /> <img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/code-dark-1.png" alt="C#, TypeScript, Python, Bash — dark theme" width="49%" />
 
-<img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/code-light-2.png" alt="JSON, SQL — light theme" width="420" /> <img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/code-dark-2.png" alt="JSON, SQL — dark theme" width="420" />
+<img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/code-light-2.png" alt="JSON, SQL — light theme" width="49%" /> <img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/code-dark-2.png" alt="JSON, SQL — dark theme" width="49%" />
 
 ### Mermaid pan / zoom & fit-to-screen
 
@@ -37,7 +37,7 @@ viewport (Esc to exit).
 
 #### Diagrams
 
-<img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/diagram-light-1.png" alt="Mermaid diagrams — light theme" width="420" /> <img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/diagram-dark-1.png" alt="Mermaid diagrams — dark theme" width="420" />
+<img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/diagram-light-1.png" alt="Mermaid diagrams — light theme" width="49%" /> <img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/diagram-dark-1.png" alt="Mermaid diagrams — dark theme" width="49%" />
 
 ### Math (KaTeX)
 
