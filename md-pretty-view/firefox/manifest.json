@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "MD Pretty View",
+  "version": "0.0.3",
+  "description": "Apply the shared MD Pretty View markdown theme to markdown pages in the browser.",
+  "icons": {
+    "128": "icon.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "md-pretty-view@masoud-pourhasan"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["theme.css"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

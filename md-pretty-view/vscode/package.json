@@ -30,10 +30,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/masoud-pourhasan/my-vs-code-extensions.git"
+    "url": "https://github.com/masoud-pourhasan/customized-extensions.git",
+    "directory": "md-pretty-view/vscode"
   },
   "scripts": {
-    "icon": "node scripts/render-icon.mjs"
+    "sync": "node scripts/sync-shared.mjs",
+    "icon": "node scripts/render-icon.mjs",
+    "postinstall": "node scripts/sync-shared.mjs",
+    "vscode:prepublish": "node scripts/sync-shared.mjs"
   },
   "extensionDependencies": [
     "shd101wyy.markdown-preview-enhanced"
