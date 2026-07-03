@@ -1,0 +1,64 @@
+name: Publish MD Pretty View
+
+# Publishes the VS Code extension to the Visual Studio Marketplace when a
+# version tag is pushed. Tag scheme (monorepo-friendly): md-pretty-view-vX.Y.Z
+#
+#   git tag md-pretty-view-v0.0.4
+#   git push origin md-pretty-view-v0.0.4
+#
+# Requires the repository secret VSCE_PAT (a Visual Studio Marketplace
+# Personal Access Token with Marketplace > Manage scope).
+
+on:
+  push:
+    tags:
+      - "md-pretty-view-v*.*.*"
+
+permissions:
+  contents: write # needed to create the GitHub Release
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: md-pretty-view/vscode
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: md-pretty-view/vscode/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify tag matches package.json version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#md-pretty-view-v}"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          echo "Tag version:     $TAG_VERSION"
+          echo "package.json:    $PKG_VERSION"
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)."
+            exit 1
+          fi
+
+      - name: Publish to Visual Studio Marketplace
+        run: npx --yes @vscode/vsce publish --no-dependencies
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: Package VSIX for release asset
+        run: npx --yes @vscode/vsce package --no-dependencies --out "md-pretty-view-${GITHUB_REF_NAME#md-pretty-view-v}.vsix"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: md-pretty-view/vscode/*.vsix
+          generate_release_notes: true
