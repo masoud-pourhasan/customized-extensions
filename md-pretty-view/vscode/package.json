@@ -2,7 +2,7 @@
   "name": "md-pretty-view",
   "displayName": "MD Pretty View",
   "description": "A clean, polished look for Markdown Preview Enhanced: one-lever light/dark theme, a consistent editor-style syntax palette, styled Mermaid diagrams, and Mermaid pan/zoom & fit-to-screen. Installs the styling into your Markdown Preview Enhanced config folder.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "masoud-pourhasan",
   "license": "MIT",
   "icon": "icon.png",
