@@ -4,4 +4,6 @@ node_modules/**
 **/*.vsix
 *.log
 scripts/**
+media/**
+examples/**
 package-lock.json
