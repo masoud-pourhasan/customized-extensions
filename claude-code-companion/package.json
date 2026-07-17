@@ -1,0 +1,93 @@
+{
+  "name": "claude-code-companion",
+  "displayName": "Claude Code Companion",
+  "description": "Copilot-style indicators for Claude Code: model, mode, effort, and usage limits in the status bar, with quick pickers.",
+  "version": "0.0.1",
+  "publisher": "masoud-pourhasan",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/masoud-pourhasan/customized-extensions.git",
+    "directory": "claude-code-companion"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "claude",
+    "claude code",
+    "anthropic",
+    "status bar",
+    "usage",
+    "model"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "claudeCompanion.pickModel",
+        "title": "Claude Companion: Select Model"
+      },
+      {
+        "command": "claudeCompanion.pickEffort",
+        "title": "Claude Companion: Select Effort Level"
+      },
+      {
+        "command": "claudeCompanion.showUsage",
+        "title": "Claude Companion: Show Usage Details"
+      },
+      {
+        "command": "claudeCompanion.refresh",
+        "title": "Claude Companion: Refresh Indicators"
+      }
+    ],
+    "configuration": {
+      "title": "Claude Code Companion",
+      "properties": {
+        "claudeCompanion.showModel": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the model indicator in the status bar."
+        },
+        "claudeCompanion.showEffort": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the effort-level indicator in the status bar."
+        },
+        "claudeCompanion.showMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the session permission-mode indicator in the status bar."
+        },
+        "claudeCompanion.showUsage": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the usage-limits indicator in the status bar."
+        },
+        "claudeCompanion.pollIntervalSeconds": {
+          "type": "number",
+          "default": 10,
+          "minimum": 2,
+          "description": "How often to re-check Claude Code's config and session files for changes."
+        },
+        "claudeCompanion.usageWarningPercent": {
+          "type": "number",
+          "default": 70,
+          "description": "Usage percentage at which the indicator turns to warning color."
+        },
+        "claudeCompanion.usageErrorPercent": {
+          "type": "number",
+          "default": 90,
+          "description": "Usage percentage at which the indicator turns to error color."
+        }
+      }
+    }
+  },
+  "scripts": {}
+}
