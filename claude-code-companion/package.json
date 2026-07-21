@@ -1,9 +1,10 @@
 {
   "name": "claude-code-companion",
   "displayName": "Claude Code Companion",
-  "description": "Copilot-style indicators for Claude Code: model, mode, effort, and usage limits in the status bar, with quick pickers.",
-  "version": "0.0.1",
+  "description": "Copilot-style indicators for Claude Code: model, mode, effort, and usage limits — in the status bar, a sidebar panel, and/or the editor title bar, in any combination.",
+  "version": "0.2.1",
   "publisher": "masoud-pourhasan",
+  "icon": "resources/icon.png",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -45,30 +46,107 @@
       {
         "command": "claudeCompanion.refresh",
         "title": "Claude Companion: Refresh Indicators"
+      },
+      {
+        "command": "claudeCompanion.chooseSurfaces",
+        "title": "Claude Companion: Choose Where Indicators Appear…"
+      },
+      {
+        "command": "claudeCompanion.openQuickActions",
+        "title": "Claude Companion: Open Quick Actions"
+      },
+      {
+        "command": "claudeCompanion.editorTitleNormal",
+        "title": "Claude Code Companion",
+        "icon": "resources/editor-icon-normal.svg"
+      },
+      {
+        "command": "claudeCompanion.editorTitleWarning",
+        "title": "Claude Code Companion (usage high)",
+        "icon": "resources/editor-icon-warning.svg"
+      },
+      {
+        "command": "claudeCompanion.editorTitleError",
+        "title": "Claude Code Companion (usage critical)",
+        "icon": "resources/editor-icon-error.svg"
       }
     ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "claudeCompanion.editorTitleNormal",
+          "group": "navigation@100",
+          "when": "config.claudeCompanion.surface.editorTitle && claudeCompanion.usageSeverity == 'normal'"
+        },
+        {
+          "command": "claudeCompanion.editorTitleWarning",
+          "group": "navigation@100",
+          "when": "config.claudeCompanion.surface.editorTitle && claudeCompanion.usageSeverity == 'warning'"
+        },
+        {
+          "command": "claudeCompanion.editorTitleError",
+          "group": "navigation@100",
+          "when": "config.claudeCompanion.surface.editorTitle && claudeCompanion.usageSeverity == 'error'"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "claudeCompanionContainer",
+          "title": "Claude Companion",
+          "icon": "resources/activity-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "claudeCompanionContainer": [
+        {
+          "id": "claudeCompanion.sidebarView",
+          "name": "Claude Code Companion",
+          "type": "webview",
+          "when": "config.claudeCompanion.surface.sidebar",
+          "icon": "resources/activity-icon.svg"
+        }
+      ]
+    },
     "configuration": {
       "title": "Claude Code Companion",
       "properties": {
+        "claudeCompanion.surface.statusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show indicators in the status bar."
+        },
+        "claudeCompanion.surface.sidebar": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show a Claude Companion panel in the activity bar / sidebar."
+        },
+        "claudeCompanion.surface.editorTitle": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show a Claude Companion button in the editor title bar (icon only; click for details — VS Code does not allow dynamic text there)."
+        },
         "claudeCompanion.showModel": {
           "type": "boolean",
           "default": true,
-          "description": "Show the model indicator in the status bar."
+          "description": "Show the model indicator (status bar surface)."
         },
         "claudeCompanion.showEffort": {
           "type": "boolean",
           "default": true,
-          "description": "Show the effort-level indicator in the status bar."
+          "description": "Show the effort-level indicator (status bar surface)."
         },
         "claudeCompanion.showMode": {
           "type": "boolean",
           "default": true,
-          "description": "Show the session permission-mode indicator in the status bar."
+          "description": "Show the session permission-mode indicator (status bar surface)."
         },
         "claudeCompanion.showUsage": {
           "type": "boolean",
           "default": true,
-          "description": "Show the usage-limits indicator in the status bar."
+          "description": "Show the usage-limits indicator (status bar surface)."
         },
         "claudeCompanion.pollIntervalSeconds": {
           "type": "number",
@@ -79,12 +157,12 @@
         "claudeCompanion.usageWarningPercent": {
           "type": "number",
           "default": 70,
-          "description": "Usage percentage at which the indicator turns to warning color."
+          "description": "Usage percentage at which indicators switch to warning color/icon."
         },
         "claudeCompanion.usageErrorPercent": {
           "type": "number",
           "default": 90,
-          "description": "Usage percentage at which the indicator turns to error color."
+          "description": "Usage percentage at which indicators switch to error color/icon."
         }
       }
     }

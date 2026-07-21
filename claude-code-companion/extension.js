@@ -4,6 +4,7 @@ const vscode = require("vscode");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const crypto = require("crypto");
 
 const HOME = os.homedir();
 const SETTINGS_PATH = path.join(HOME, ".claude", "settings.json");
@@ -11,7 +12,7 @@ const STATE_PATH = path.join(HOME, ".claude.json");
 const PROJECTS_DIR = path.join(HOME, ".claude", "projects");
 
 // ---------------------------------------------------------------------------
-// Data readers
+// Data readers (unchanged from earlier version — Claude Code's own files)
 // ---------------------------------------------------------------------------
 
 function readJsonSafe(filePath) {
@@ -47,7 +48,6 @@ function prettyModel(raw) {
   for (const [re, name] of MODEL_NAMES) {
     if (re.test(base)) return { label: name, oneM };
   }
-  // e.g. "claude-foo-2" -> "Foo 2"
   const guess = base
     .replace(/^claude-/, "")
     .replace(/-(\d)/g, " $1")
@@ -155,6 +155,7 @@ function untilText(iso) {
 }
 
 function agoText(ms) {
+  if (ms == null) return "never";
   const diff = Date.now() - ms;
   if (diff < 90000) return "just now";
   const min = Math.round(diff / 60000);
@@ -167,6 +168,10 @@ function kTokens(n) {
   return n >= 1000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1)}k` : String(n);
 }
 
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
 const MODE_ICONS = {
   default: "$(shield)",
   auto: "$(zap)",
@@ -177,15 +182,226 @@ const MODE_ICONS = {
 };
 
 // ---------------------------------------------------------------------------
+// Central state — computed once per refresh, consumed by every surface
+// (status bar, sidebar webview, editor title bar).
+// ---------------------------------------------------------------------------
+
+function currentCwd() {
+  return vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length
+    ? vscode.workspace.workspaceFolders[0].uri.fsPath
+    : null;
+}
+
+function computeState(cfg) {
+  const settings = readGlobalSettings();
+  const usageRaw = readUsage();
+  const cwd = currentCwd();
+  const session = cwd ? readSessionState(cwd) : null;
+
+  const modelPretty = prettyModel(settings.model);
+  const effort = (session && session.effort) || settings.effortLevel || "default";
+  const mode = (session && session.permissionMode) || null;
+
+  const windowSize = /\[1m\]$/.test(settings.model || "") ? 1000000 : 200000;
+  const contextPct =
+    session && session.contextTokens != null ? Math.round((session.contextTokens / windowSize) * 100) : null;
+
+  let usageFive = null,
+    usageWeek = null,
+    usageLimits = [],
+    usageFetchedAt = null;
+  if (usageRaw && usageRaw.utilization) {
+    const u = usageRaw.utilization;
+    usageFive = u.five_hour ? u.five_hour.utilization : null;
+    usageWeek = u.seven_day ? u.seven_day.utilization : null;
+    usageLimits = u.limits || [];
+    usageFetchedAt = usageRaw.fetchedAtMs || null;
+    var fiveResetAt = u.five_hour ? u.five_hour.resets_at : null;
+    var weekResetAt = u.seven_day ? u.seven_day.resets_at : null;
+  }
+
+  const worst = Math.max(usageFive || 0, usageWeek || 0);
+  const warnAt = cfg.get("usageWarningPercent");
+  const errAt = cfg.get("usageErrorPercent");
+  const severity = worst >= errAt ? "error" : worst >= warnAt ? "warning" : "normal";
+
+  return {
+    settings,
+    modelRaw: settings.model,
+    modelPretty,
+    effort,
+    session,
+    mode,
+    contextPct,
+    usageFive,
+    usageWeek,
+    usageLimits,
+    usageFetchedAt,
+    fiveResetAt: typeof fiveResetAt !== "undefined" ? fiveResetAt : null,
+    weekResetAt: typeof weekResetAt !== "undefined" ? weekResetAt : null,
+    worst,
+    severity,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Sidebar webview
+// ---------------------------------------------------------------------------
+
+class ClaudeCompanionViewProvider {
+  constructor() {
+    this.view = null;
+    this.lastState = null;
+  }
+
+  resolveWebviewView(webviewView) {
+    this.view = webviewView;
+    webviewView.webview.options = { enableScripts: true };
+    webviewView.webview.onDidReceiveMessage((msg) => {
+      if (msg && msg.type === "exec" && typeof msg.command === "string") {
+        vscode.commands.executeCommand(msg.command);
+      }
+    });
+    webviewView.onDidDispose(() => {
+      this.view = null;
+    });
+    if (this.lastState) this.render(this.lastState);
+  }
+
+  update(state) {
+    this.lastState = state;
+    if (this.view) this.render(state);
+  }
+
+  render(state) {
+    this.view.webview.html = buildSidebarHtml(state);
+  }
+}
+
+function buildSidebarHtml(state) {
+  const nonce = crypto.randomBytes(16).toString("hex");
+  const { modelPretty, modelRaw, effort, mode, contextPct, usageFive, usageWeek, usageLimits, usageFetchedAt } = state;
+
+  const modeRow = mode
+    ? `<div class="row" data-command="claudeCompanion.explainMode" tabindex="0" role="button">
+         <span class="icon">${MODE_ICONS[mode] ? codiconSpan(MODE_ICONS[mode]) : "🛡"}</span>
+         <span class="label">Mode</span>
+         <span class="value">${escapeHtml(mode)}</span>
+       </div>
+       ${contextPct != null ? `<div class="subtle">Context ~${contextPct}% of window</div>` : ""}`
+    : `<div class="row disabled"><span class="label">Mode</span><span class="value">no active session</span></div>`;
+
+  function limitRow(label, pct, resetAt) {
+    if (pct == null) return "";
+    const cls = pct >= 90 ? "err" : pct >= 70 ? "warn" : "ok";
+    return `<div class="limit">
+      <div class="limit-head"><span>${escapeHtml(label)}</span><span>${pct}%</span></div>
+      <div class="track"><div class="fill ${cls}" style="width:${Math.min(100, pct)}%"></div></div>
+      <div class="subtle">${escapeHtml(untilText(resetAt))}</div>
+    </div>`;
+  }
+
+  const extraLimits = (usageLimits || [])
+    .filter((l) => l.kind !== "session" && l.kind !== "weekly_all" && l.percent != null)
+    .map((l) => limitRow(l.scope ? `${l.kind} (${l.scope})` : l.kind, l.percent, l.resets_at))
+    .join("");
+
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
+<style>
+  body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); padding: 0 8px 12px; font-size: 13px; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--vscode-descriptionForeground); margin: 16px 0 6px; }
+  .row { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 4px; cursor: pointer; }
+  .row:hover, .row:focus { background: var(--vscode-list-hoverBackground); outline: none; }
+  .row.disabled { opacity: .6; cursor: default; }
+  .row .icon { width: 16px; text-align: center; opacity: .8; }
+  .row .label { flex: 1; color: var(--vscode-descriptionForeground); }
+  .row .value { font-weight: 600; }
+  .subtle { color: var(--vscode-descriptionForeground); font-size: 11px; padding: 0 4px 4px; }
+  .limit { margin: 8px 4px 4px; }
+  .limit-head { display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .track { height: 6px; border-radius: 3px; background: var(--vscode-progressBar-background, rgba(128,128,128,.25)); overflow: hidden; }
+  .fill { height: 100%; }
+  .fill.ok { background: var(--vscode-charts-green, #3fb950); }
+  .fill.warn { background: var(--vscode-charts-yellow, #d29922); }
+  .fill.err { background: var(--vscode-charts-red, #f85149); }
+  .actions { display: flex; gap: 6px; margin-top: 14px; }
+  button { flex: 1; background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); border: none; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  button:hover { background: var(--vscode-button-secondaryHoverBackground); }
+  .footer { margin-top: 14px; font-size: 11px; color: var(--vscode-descriptionForeground); text-align: center; }
+</style>
+</head>
+<body>
+
+<h2>Model &amp; effort</h2>
+<div class="row" data-command="claudeCompanion.pickModel" tabindex="0" role="button">
+  <span class="icon">✦</span>
+  <span class="label">Model</span>
+  <span class="value">${escapeHtml(modelPretty.label)}${modelPretty.oneM ? " · 1M" : ""}</span>
+</div>
+<div class="subtle">${escapeHtml(modelRaw || "default")}</div>
+<div class="row" data-command="claudeCompanion.pickEffort" tabindex="0" role="button">
+  <span class="icon">⏱</span>
+  <span class="label">Effort</span>
+  <span class="value">${escapeHtml(effort)}</span>
+</div>
+
+<h2>Session</h2>
+${modeRow}
+
+<h2>Usage limits</h2>
+${limitRow("Session (5h)", usageFive, state.fiveResetAt)}
+${limitRow("Weekly (7d)", usageWeek, state.weekResetAt)}
+${extraLimits}
+${usageFive == null && usageWeek == null ? `<div class="subtle">No usage data yet — use Claude Code once to populate it.</div>` : ""}
+
+<div class="actions">
+  <button data-command="claudeCompanion.refresh">Refresh</button>
+  <button data-command="claudeCompanion.chooseSurfaces">Surfaces…</button>
+</div>
+<div class="footer">Usage updated ${escapeHtml(agoText(usageFetchedAt))}</div>
+
+<script nonce="${nonce}">
+  const vscode = acquireVsCodeApi();
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-command]');
+    if (el) vscode.postMessage({ type: 'exec', command: el.getAttribute('data-command') });
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target.closest('[data-command]');
+    if (el) { e.preventDefault(); vscode.postMessage({ type: 'exec', command: el.getAttribute('data-command') }); }
+  });
+</script>
+</body>
+</html>`;
+}
+
+function codiconSpan(id) {
+  // id looks like "$(zap)"; sidebar HTML has no codicon font loaded, so just
+  // fall back to the raw name — kept as a hook if a codicon font is added later.
+  return id.replace(/^\$\(|\)$/g, "");
+}
+
+// ---------------------------------------------------------------------------
 // Extension
 // ---------------------------------------------------------------------------
 
 function activate(context) {
+  const cfg = () => vscode.workspace.getConfiguration("claudeCompanion");
+
+  // Status bar items
   const items = {
-    model: vscode.window.createStatusBarItem("claudeCompanion.model", vscode.StatusBarAlignment.Right, 103),
-    effort: vscode.window.createStatusBarItem("claudeCompanion.effort", vscode.StatusBarAlignment.Right, 102),
-    mode: vscode.window.createStatusBarItem("claudeCompanion.mode", vscode.StatusBarAlignment.Right, 101),
-    usage: vscode.window.createStatusBarItem("claudeCompanion.usage", vscode.StatusBarAlignment.Right, 100),
+    // High, tightly-spaced priorities so these four stay grouped together and
+    // ahead of other extensions' status bar items (e.g. Copilot), which
+    // typically use much lower priority values. Higher priority = further left.
+    model: vscode.window.createStatusBarItem("claudeCompanion.model", vscode.StatusBarAlignment.Right, 1004),
+    effort: vscode.window.createStatusBarItem("claudeCompanion.effort", vscode.StatusBarAlignment.Right, 1003),
+    mode: vscode.window.createStatusBarItem("claudeCompanion.mode", vscode.StatusBarAlignment.Right, 1002),
+    usage: vscode.window.createStatusBarItem("claudeCompanion.usage", vscode.StatusBarAlignment.Right, 1001),
   };
   items.model.name = "Claude: Model";
   items.effort.name = "Claude: Effort";
@@ -197,28 +413,34 @@ function activate(context) {
   items.usage.command = "claudeCompanion.showUsage";
   for (const item of Object.values(items)) context.subscriptions.push(item);
 
-  const cfg = () => vscode.workspace.getConfiguration("claudeCompanion");
-  const cwd = () =>
-    vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length
-      ? vscode.workspace.workspaceFolders[0].uri.fsPath
-      : null;
+  // Sidebar webview
+  const sidebarProvider = new ClaudeCompanionViewProvider();
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider("claudeCompanion.sidebarView", sidebarProvider, {
+      webviewOptions: { retainContextWhenHidden: true },
+    })
+  );
+
+  // Editor title bar starts with a known context value so the icon shows
+  // immediately, before the first refresh() runs.
+  vscode.commands.executeCommand("setContext", "claudeCompanion.usageSeverity", "normal");
 
   function refresh() {
-    const settings = readGlobalSettings();
-    const usage = readUsage();
-    const session = cwd() ? readSessionState(cwd()) : null;
     const conf = cfg();
+    const state = computeState(conf);
+    const { modelPretty, modelRaw, effort, mode, contextPct, usageFive, usageWeek, usageLimits, usageFetchedAt, severity } =
+      state;
+
+    const onStatusBar = conf.get("surface.statusBar");
 
     // --- Model ---
-    if (conf.get("showModel")) {
-      const raw = (session && session.model) || settings.model;
-      const { label, oneM } = prettyModel(settings.model || raw);
-      items.model.text = `$(sparkle) ${label}${oneM ? " · 1M" : ""}`;
+    if (onStatusBar && conf.get("showModel")) {
+      items.model.text = `$(sparkle) ${modelPretty.label}${modelPretty.oneM ? " · 1M" : ""}`;
       const md = new vscode.MarkdownString(undefined, true);
       md.appendMarkdown(`**Claude Code model**\n\n`);
-      md.appendMarkdown(`Configured: \`${settings.model || "default"}\`\n\n`);
-      if (session && session.model) {
-        md.appendMarkdown(`Last response in this project: \`${session.model}\`\n\n`);
+      md.appendMarkdown(`Configured: \`${modelRaw || "default"}\`\n\n`);
+      if (state.session && state.session.model) {
+        md.appendMarkdown(`Last response in this project: \`${state.session.model}\`\n\n`);
       }
       md.appendMarkdown(`_Click to change (applies to new sessions)._`);
       items.model.tooltip = md;
@@ -226,8 +448,7 @@ function activate(context) {
     } else items.model.hide();
 
     // --- Effort ---
-    if (conf.get("showEffort")) {
-      const effort = (session && session.effort) || settings.effortLevel || "default";
+    if (onStatusBar && conf.get("showEffort")) {
       items.effort.text = `$(dashboard) ${effort}`;
       items.effort.tooltip = new vscode.MarkdownString(
         `**Effort level**: \`${effort}\`\n\n_Click to change (applies to new sessions)._`
@@ -235,59 +456,51 @@ function activate(context) {
       items.effort.show();
     } else items.effort.hide();
 
-    // --- Mode (per-session, from transcript) ---
-    if (conf.get("showMode") && session && session.permissionMode) {
-      const mode = session.permissionMode;
+    // --- Mode ---
+    if (onStatusBar && conf.get("showMode") && mode) {
       const icon = MODE_ICONS[mode] || "$(shield)";
       items.mode.text = `${icon} ${mode}`;
       const md = new vscode.MarkdownString(undefined, true);
       md.appendMarkdown(`**Session permission mode**: \`${mode}\`\n\n`);
-      if (session.contextTokens != null) {
-        const windowSize = /\[1m\]/.test(settings.model || "") ? 1000000 : 200000;
-        const pct = Math.round((session.contextTokens / windowSize) * 100);
-        md.appendMarkdown(`Context: ~${kTokens(session.contextTokens)} tokens (${pct}% of window)\n\n`);
-      }
-      md.appendMarkdown(`Last activity: ${agoText(session.mtime)}\n\n`);
+      if (contextPct != null) md.appendMarkdown(`Context: ~${kTokens(state.session.contextTokens)} tokens (${contextPct}% of window)\n\n`);
+      md.appendMarkdown(`Last activity: ${agoText(state.session.mtime)}\n\n`);
       md.appendMarkdown(`_Change it with Shift+Tab in the Claude Code input._`);
       items.mode.tooltip = md;
       items.mode.show();
     } else items.mode.hide();
 
     // --- Usage ---
-    if (conf.get("showUsage") && usage && usage.utilization) {
-      const u = usage.utilization;
-      const five = u.five_hour ? u.five_hour.utilization : null;
-      const week = u.seven_day ? u.seven_day.utilization : null;
+    if (onStatusBar && conf.get("showUsage") && (usageFive != null || usageWeek != null)) {
       const parts = [];
-      if (five != null) parts.push(`5h ${five}%`);
-      if (week != null) parts.push(`7d ${week}%`);
+      if (usageFive != null) parts.push(`5h ${usageFive}%`);
+      if (usageWeek != null) parts.push(`7d ${usageWeek}%`);
       items.usage.text = `$(pulse) ${parts.join(" · ") || "usage n/a"}`;
-
-      const worst = Math.max(five || 0, week || 0);
-      const warnAt = conf.get("usageWarningPercent");
-      const errAt = conf.get("usageErrorPercent");
       items.usage.backgroundColor =
-        worst >= errAt
+        severity === "error"
           ? new vscode.ThemeColor("statusBarItem.errorBackground")
-          : worst >= warnAt
+          : severity === "warning"
             ? new vscode.ThemeColor("statusBarItem.warningBackground")
             : undefined;
 
       const md = new vscode.MarkdownString(undefined, true);
       md.appendMarkdown(`**Claude usage limits**\n\n`);
-      if (u.five_hour)
-        md.appendMarkdown(`Session (5h): \`${bar(five)}\` ${five}% — ${untilText(u.five_hour.resets_at)}\n\n`);
-      if (u.seven_day)
-        md.appendMarkdown(`Weekly (7d): \`${bar(week)}\` ${week}% — ${untilText(u.seven_day.resets_at)}\n\n`);
-      for (const lim of u.limits || []) {
-        if (lim.kind === "session" || lim.kind === "weekly_all") continue; // already shown
+      if (usageFive != null) md.appendMarkdown(`Session (5h): \`${bar(usageFive)}\` ${usageFive}% — ${untilText(state.fiveResetAt)}\n\n`);
+      if (usageWeek != null) md.appendMarkdown(`Weekly (7d): \`${bar(usageWeek)}\` ${usageWeek}% — ${untilText(state.weekResetAt)}\n\n`);
+      for (const lim of usageLimits || []) {
+        if (lim.kind === "session" || lim.kind === "weekly_all") continue;
         if (lim.percent == null) continue;
         md.appendMarkdown(`${lim.kind}: \`${bar(lim.percent)}\` ${lim.percent}% — ${untilText(lim.resets_at)}\n\n`);
       }
-      if (usage.fetchedAtMs) md.appendMarkdown(`_Updated ${agoText(usage.fetchedAtMs)} by Claude Code._`);
+      if (usageFetchedAt) md.appendMarkdown(`_Updated ${agoText(usageFetchedAt)} by Claude Code._`);
       items.usage.tooltip = md;
       items.usage.show();
     } else items.usage.hide();
+
+    // --- Sidebar ---
+    if (conf.get("surface.sidebar")) sidebarProvider.update(state);
+
+    // --- Editor title bar (icon-only; severity drives which button shows) ---
+    vscode.commands.executeCommand("setContext", "claudeCompanion.usageSeverity", severity);
   }
 
   // --- Commands ---------------------------------------------------------
@@ -371,6 +584,68 @@ function activate(context) {
 
     vscode.commands.registerCommand("claudeCompanion.refresh", refresh),
 
+    // Single quick-actions entry point, shared by the editor-title-bar
+    // buttons (which can only carry an icon, not live text).
+    vscode.commands.registerCommand("claudeCompanion.openQuickActions", async () => {
+      const state = computeState(cfg());
+      const items2 = [
+        {
+          label: `$(sparkle) Model: ${state.modelPretty.label}${state.modelPretty.oneM ? " · 1M" : ""}`,
+          description: state.modelRaw || "default",
+          action: "claudeCompanion.pickModel",
+        },
+        { label: `$(dashboard) Effort: ${state.effort}`, action: "claudeCompanion.pickEffort" },
+        {
+          label: `$(shield) Mode: ${state.mode || "no active session"}`,
+          description: state.contextPct != null ? `${state.contextPct}% context` : "",
+          action: "claudeCompanion.explainMode",
+        },
+        {
+          label: `$(pulse) Usage: 5h ${state.usageFive ?? "–"}% · 7d ${state.usageWeek ?? "–"}%`,
+          action: "claudeCompanion.showUsage",
+        },
+        { label: `$(layout) Choose where indicators appear…`, action: "claudeCompanion.chooseSurfaces" },
+      ];
+      const pick = await vscode.window.showQuickPick(items2, { placeHolder: "Claude Code Companion" });
+      if (pick) vscode.commands.executeCommand(pick.action);
+    }),
+
+    // Editor-title-bar variants: same handler, different declared icon so
+    // that only one (matched by the usageSeverity context key) is visible.
+    vscode.commands.registerCommand("claudeCompanion.editorTitleNormal", () =>
+      vscode.commands.executeCommand("claudeCompanion.openQuickActions")
+    ),
+    vscode.commands.registerCommand("claudeCompanion.editorTitleWarning", () =>
+      vscode.commands.executeCommand("claudeCompanion.openQuickActions")
+    ),
+    vscode.commands.registerCommand("claudeCompanion.editorTitleError", () =>
+      vscode.commands.executeCommand("claudeCompanion.openQuickActions")
+    ),
+
+    vscode.commands.registerCommand("claudeCompanion.chooseSurfaces", async () => {
+      const conf = cfg();
+      const options = [
+        { label: "Status bar", key: "surface.statusBar", picked: !!conf.get("surface.statusBar") },
+        { label: "Sidebar panel", key: "surface.sidebar", picked: !!conf.get("surface.sidebar") },
+        { label: "Editor title bar", key: "surface.editorTitle", picked: !!conf.get("surface.editorTitle") },
+      ];
+      const picks = await vscode.window.showQuickPick(
+        options.map((o) => ({ label: o.label, picked: o.picked })),
+        {
+          canPickMany: true,
+          placeHolder: "Choose where Claude Companion indicators appear — pick any combination",
+        }
+      );
+      if (!picks) return; // cancelled
+      const chosen = new Set(picks.map((p) => p.label));
+      for (const o of options) {
+        await conf.update(o.key, chosen.has(o.label), vscode.ConfigurationTarget.Global);
+      }
+      if (!picks.length) {
+        vscode.window.showInformationMessage("Claude Companion: all surfaces hidden. Run this command again to bring one back.");
+      }
+    }),
+
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("claudeCompanion")) refresh();
     })
@@ -380,7 +655,8 @@ function activate(context) {
   // Claude Code rewrites these files atomically, so watch directories and
   // also poll mtimes as a safety net.
   const debouncedRefresh = debounce(refresh, 300);
-  for (const dir of [path.dirname(SETTINGS_PATH), cwd() ? projectDirFor(cwd()) : null]) {
+  const cwd = currentCwd();
+  for (const dir of [path.dirname(SETTINGS_PATH), cwd ? projectDirFor(cwd) : null]) {
     if (!dir) continue;
     try {
       const w = fs.watch(dir, debouncedRefresh);
