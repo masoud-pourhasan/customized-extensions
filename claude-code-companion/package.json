@@ -2,7 +2,7 @@
   "name": "claude-code-companion",
   "displayName": "Claude Code Companion",
   "description": "Copilot-style indicators for Claude Code: model, mode, effort, and usage limits — in the status bar, a sidebar panel, and/or the editor title bar, in any combination.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "masoud-pourhasan",
   "icon": "resources/icon.png",
   "license": "MIT",

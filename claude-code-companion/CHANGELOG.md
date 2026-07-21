@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.2.2
+
+- Added an annotated screenshot to the README (light and dark) showing the three surfaces — sidebar panel, editor title bar icon, status bar — with numbered markers.
+
 ## 0.2.1
 
 - Status bar items now use a much higher priority band so they stay grouped together and ahead of other extensions' items (e.g. GitHub Copilot's), which was wedging itself in the middle of the group.
