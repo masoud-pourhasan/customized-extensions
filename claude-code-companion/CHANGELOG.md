@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.2.3
+
+- Fixed a display bug where a usage limit scoped to a specific model showed up as `weekly_scoped ([object Object])` — Claude Code's `scope` field is an object (e.g. the model's display name), not a string. Now shown as `Weekly Scoped (Fable)`.
+- Usage and effort quick-pick labels are now capitalized and no longer show raw snake_case/camelCase identifiers (`session`, `weekly_all`, `high`, `acceptEdits`) — shown as `Session`, `Weekly All`, `High`, `Accept Edits`, etc. This also applies to the effort and mode text in the status bar and sidebar panel, which previously showed the raw lowercase value.
+- Updated the README screenshots to reflect the corrected capitalization.
+
 ## 0.2.2
 
 - Added an annotated screenshot to the README (light and dark) showing the three surfaces — sidebar panel, editor title bar icon, status bar — with numbered markers.

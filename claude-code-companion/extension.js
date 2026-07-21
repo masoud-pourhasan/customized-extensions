@@ -172,6 +172,31 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
+function titleCase(s) {
+  return String(s)
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2") // camelCase -> spaced (e.g. acceptEdits)
+    .replace(/[_-]+/g, " ") // snake/kebab-case -> spaced
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Claude Code's usage-limit `scope` is an object (e.g. `{ model: { display_name }, surface }`),
+ *  not a string — pick the most useful human-readable piece of it, if any. */
+function describeScope(scope) {
+  if (!scope) return null;
+  if (typeof scope === "string") return scope;
+  if (typeof scope === "object") {
+    if (scope.model && scope.model.display_name) return scope.model.display_name;
+    if (scope.surface) return String(scope.surface);
+  }
+  return null;
+}
+
+function limitLabel(kind, scope) {
+  const scopeLabel = describeScope(scope);
+  return scopeLabel ? `${titleCase(kind)} (${scopeLabel})` : titleCase(kind);
+}
+
 const MODE_ICONS = {
   default: "$(shield)",
   auto: "$(zap)",
@@ -286,7 +311,7 @@ function buildSidebarHtml(state) {
     ? `<div class="row" data-command="claudeCompanion.explainMode" tabindex="0" role="button">
          <span class="icon">${MODE_ICONS[mode] ? codiconSpan(MODE_ICONS[mode]) : "🛡"}</span>
          <span class="label">Mode</span>
-         <span class="value">${escapeHtml(mode)}</span>
+         <span class="value">${escapeHtml(titleCase(mode))}</span>
        </div>
        ${contextPct != null ? `<div class="subtle">Context ~${contextPct}% of window</div>` : ""}`
     : `<div class="row disabled"><span class="label">Mode</span><span class="value">no active session</span></div>`;
@@ -303,7 +328,7 @@ function buildSidebarHtml(state) {
 
   const extraLimits = (usageLimits || [])
     .filter((l) => l.kind !== "session" && l.kind !== "weekly_all" && l.percent != null)
-    .map((l) => limitRow(l.scope ? `${l.kind} (${l.scope})` : l.kind, l.percent, l.resets_at))
+    .map((l) => limitRow(limitLabel(l.kind, l.scope), l.percent, l.resets_at))
     .join("");
 
   return `<!doctype html>
@@ -346,7 +371,7 @@ function buildSidebarHtml(state) {
 <div class="row" data-command="claudeCompanion.pickEffort" tabindex="0" role="button">
   <span class="icon">⏱</span>
   <span class="label">Effort</span>
-  <span class="value">${escapeHtml(effort)}</span>
+  <span class="value">${escapeHtml(titleCase(effort))}</span>
 </div>
 
 <h2>Session</h2>
@@ -449,7 +474,7 @@ function activate(context) {
 
     // --- Effort ---
     if (onStatusBar && conf.get("showEffort")) {
-      items.effort.text = `$(dashboard) ${effort}`;
+      items.effort.text = `$(dashboard) ${titleCase(effort)}`;
       items.effort.tooltip = new vscode.MarkdownString(
         `**Effort level**: \`${effort}\`\n\n_Click to change (applies to new sessions)._`
       );
@@ -459,7 +484,7 @@ function activate(context) {
     // --- Mode ---
     if (onStatusBar && conf.get("showMode") && mode) {
       const icon = MODE_ICONS[mode] || "$(shield)";
-      items.mode.text = `${icon} ${mode}`;
+      items.mode.text = `${icon} ${titleCase(mode)}`;
       const md = new vscode.MarkdownString(undefined, true);
       md.appendMarkdown(`**Session permission mode**: \`${mode}\`\n\n`);
       if (contextPct != null) md.appendMarkdown(`Context: ~${kTokens(state.session.contextTokens)} tokens (${contextPct}% of window)\n\n`);
@@ -489,7 +514,7 @@ function activate(context) {
       for (const lim of usageLimits || []) {
         if (lim.kind === "session" || lim.kind === "weekly_all") continue;
         if (lim.percent == null) continue;
-        md.appendMarkdown(`${lim.kind}: \`${bar(lim.percent)}\` ${lim.percent}% — ${untilText(lim.resets_at)}\n\n`);
+        md.appendMarkdown(`${limitLabel(lim.kind, lim.scope)}: \`${bar(lim.percent)}\` ${lim.percent}% — ${untilText(lim.resets_at)}\n\n`);
       }
       if (usageFetchedAt) md.appendMarkdown(`_Updated ${agoText(usageFetchedAt)} by Claude Code._`);
       items.usage.tooltip = md;
@@ -554,7 +579,7 @@ function activate(context) {
       const current = readGlobalSettings().effortLevel;
       const pick = await vscode.window.showQuickPick(
         ["high", "medium", "low"].map((v) => ({
-          label: (v === current ? "$(check) " : "") + v,
+          label: (v === current ? "$(check) " : "") + titleCase(v),
           value: v,
         })),
         { placeHolder: `Effort level for new sessions (current: ${current || "default"})` }
@@ -577,7 +602,7 @@ function activate(context) {
       }
       const u = usage.utilization;
       const lines = (u.limits || []).map(
-        (l) => `${l.kind}${l.scope ? ` (${l.scope})` : ""}: ${l.percent}% — ${untilText(l.resets_at)}`
+        (l) => `${limitLabel(l.kind, l.scope)}: ${l.percent}% — ${untilText(l.resets_at)}`
       );
       vscode.window.showQuickPick(lines, { placeHolder: `Claude usage — updated ${agoText(usage.fetchedAtMs)}` });
     }),
@@ -594,7 +619,7 @@ function activate(context) {
           description: state.modelRaw || "default",
           action: "claudeCompanion.pickModel",
         },
-        { label: `$(dashboard) Effort: ${state.effort}`, action: "claudeCompanion.pickEffort" },
+        { label: `$(dashboard) Effort: ${titleCase(state.effort)}`, action: "claudeCompanion.pickEffort" },
         {
           label: `$(shield) Mode: ${state.mode || "no active session"}`,
           description: state.contextPct != null ? `${state.contextPct}% context` : "",
