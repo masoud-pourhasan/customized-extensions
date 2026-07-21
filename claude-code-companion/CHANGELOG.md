@@ -1,0 +1,22 @@
+# Change Log
+
+## 0.2.1
+
+- Status bar items now use a much higher priority band so they stay grouped together and ahead of other extensions' items (e.g. GitHub Copilot's), which was wedging itself in the middle of the group.
+
+## 0.2.0
+
+- Replaced the placeholder icon with a proper Claude-style 8-point sparkle, generated for symmetry and shared across every surface.
+- Added a Marketplace/Extensions-list icon (`resources/icon.png`) — previously unset, so the Extensions view showed a generic placeholder.
+- Fixed the editor title bar icon rendering as invisible black-on-black in dark themes: VS Code does not theme `editor/title` command icons the way it themes Activity Bar icons, so the normal/warning/error states now ship with real baked-in brand colors (orange / amber / red) instead of relying on automatic theming.
+
+## 0.1.1
+
+- Added a dedicated sidebar panel (activity bar view) with all four indicators, per-limit progress bars, and Refresh/Choose-surfaces buttons.
+- Added an editor title bar button (icon-only, per VS Code API constraints) that swaps shape as usage rises.
+- Indicators can now be shown in the status bar, the sidebar, and/or the editor title bar in any combination — toggle via **Claude Companion: Choose Where Indicators Appear…** or the `claudeCompanion.surface.*` settings.
+
+## 0.0.1
+
+- Initial release: status bar indicators for Claude Code's current model, effort level, session permission mode, and usage limits, read locally from Claude Code's own config and session files.
+- Quick pickers to change model and effort level for new sessions.
