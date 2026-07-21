@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.2.4
+
+- The Marketplace overview page's README renderer doesn't honor `<picture>`/`prefers-color-scheme`, so the light-theme screenshot never showed — only the dark fallback did. Replaced with two plain, always-visible images (dark, then light) stacked in the README.
+
 ## 0.2.3
 
 - Fixed a display bug where a usage limit scoped to a specific model showed up as `weekly_scoped ([object Object])` — Claude Code's `scope` field is an object (e.g. the model's display name), not a string. Now shown as `Weekly Scoped (Fable)`.

@@ -5,11 +5,9 @@ Copilot-style indicators for the official **Claude Code for VS Code** extension.
 > VS Code does not allow one extension to inject UI into another extension's webview, so these indicators live in VS Code's own UI surfaces (the same ones GitHub Copilot uses) rather than literally inside the Claude chat input.
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/claude-code-companion/resources/screenshot-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/claude-code-companion/resources/screenshot-light.png">
-    <img alt="Claude Code Companion: sidebar panel, editor title bar icon, and status bar indicators" src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/claude-code-companion/resources/screenshot-dark.png" width="820">
-  </picture>
+  <img alt="Claude Code Companion in dark theme: sidebar panel, editor title bar icon, and status bar indicators" src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/claude-code-companion/resources/screenshot-dark.png" width="820">
+  <br>
+  <img alt="Claude Code Companion in light theme: sidebar panel, editor title bar icon, and status bar indicators" src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/claude-code-companion/resources/screenshot-light.png" width="820">
 </p>
 
 <p align="center"><sub><b>1</b> sidebar panel · <b>2</b> editor title bar icon · <b>3</b> status bar</sub></p>
