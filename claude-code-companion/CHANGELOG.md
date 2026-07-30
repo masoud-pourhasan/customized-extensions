@@ -1,5 +1,13 @@
 # Change Log
 
+## 0.2.5
+
+- The model picker and the display-name prettifier were two separately hand-maintained lists that had drifted apart — newly released models (e.g. Opus 5) were missing from both, so they fell back to a raw/guessed label and couldn't be selected at all. Unified them into one `MODEL_CATALOG`, added the missing models, and made the 1M-context option generic instead of hardcoded per-model.
+- Neither list recognized bare model aliases (`opus`, `sonnet`, `fable`, `haiku`) — the form Claude Code itself writes to `settings.json` when you run `/model sonnet` (confirmed against `claude --model`'s own docs and a real `settings.json` in the wild, which had `"model": "sonnet"`, not a full id). These now resolve and display correctly, alongside pinned full/dated ids.
+- The effort-level picker only offered `high`/`medium`/`low`, silently missing `xhigh` and `max` — both real, documented values (`claude --effort`), and `xhigh` in particular is a common current setting. Picking any of the three offered options would have downgraded a user already on `xhigh`. Now offers all five.
+- Usage limits (5h/weekly) are only refreshed by Claude Code itself, not continuously — once a window's own reset time has passed, the cached percentage is a leftover from before that reset, not current usage. The status bar, sidebar, and usage quick-pick now flag stale windows (⚠) instead of presenting an outdated number with confidence, and stale values no longer trigger the warning/error color.
+- The usage cache file (`~/.claude.json`) lives outside the directory the extension was already watching, so updates to it only showed up on the next poll tick (up to `pollIntervalSeconds`). Now watched directly for near-immediate updates.
+
 ## 0.2.4
 
 - The Marketplace overview page's README renderer doesn't honor `<picture>`/`prefers-color-scheme`, so the light-theme screenshot never showed — only the dark fallback did. Replaced with two plain, always-visible images (dark, then light) stacked in the README.

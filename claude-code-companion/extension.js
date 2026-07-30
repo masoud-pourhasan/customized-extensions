@@ -29,15 +29,55 @@ function projectDirFor(cwd) {
   return path.join(PROJECTS_DIR, cwd.replace(/[^a-zA-Z0-9-]/g, "-"));
 }
 
+/** Single source of truth for known models — used both to render a
+ *  display label for whatever's in settings.json and to populate the
+ *  "pick a model" quick-pick, so the two can't drift out of sync.
+ *
+ *  `claude --model` accepts either a bare family alias (`opus`, `sonnet`,
+ *  `fable`, `haiku`) that always resolves to that family's latest release,
+ *  or a pinned full/dated id (`claude-opus-5`, `claude-haiku-4-5-20251001`).
+ *  Both forms show up in settings.json in the wild — aliases are what
+ *  Claude Code itself writes when you run `/model sonnet`. `id` is what the
+ *  picker writes when this entry is chosen; `matches` lists every raw form
+ *  (alias and/or pinned) that should still display with this entry's
+ *  `label`. Order matters for the pinned matches: more specific ones
+ *  (opus-4-8) must precede prefixes they contain (opus-4), since matching
+ *  below is prefix-based. */
+// Ordered strongest-to-weakest family (Fable > Opus > Sonnet > Haiku), then
+// highest version first within a family.
+const MODEL_CATALOG = [
+  { id: "fable", label: "Fable 5", oneM: true, matches: ["fable", "claude-fable-5"] },
+  { id: "opus", label: "Opus 5", oneM: true, matches: ["opus", "claude-opus-5"] },
+  { id: "claude-opus-4-8", label: "Opus 4.8", oneM: false, matches: ["claude-opus-4-8"] },
+  { id: "claude-opus-4-7", label: "Opus 4.7", oneM: false, matches: ["claude-opus-4-7"] },
+  { id: "claude-opus-4", label: "Opus 4", oneM: false, matches: ["claude-opus-4"] },
+  { id: "sonnet", label: "Sonnet 5", oneM: true, matches: ["sonnet", "claude-sonnet-5"] },
+  { id: "claude-sonnet-4-5", label: "Sonnet 4.5", oneM: false, matches: ["claude-sonnet-4-5"] },
+  { id: "haiku", label: "Haiku 4.5", oneM: false, matches: ["haiku", "claude-haiku-4-5"] },
+  { id: "opusplan", label: "Opus Plan", oneM: false, matches: ["opusplan"] },
+];
+
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Dated snapshot ids (e.g. `claude-haiku-4-5-20251001`) should still be
+ *  recognized without the date suffix. */
+function modelIdPrefix(id) {
+  return id.replace(/-\d{8}$/, "");
+}
+
+/** Bare aliases (and `opusplan`) must match exactly — otherwise `opus`
+ *  would prefix-match `opusplan` too. Pinned `claude-*` ids stay prefix
+ *  matches so dated snapshots are still recognized. */
+function isBareId(id) {
+  return !id.startsWith("claude-");
+}
+
 const MODEL_NAMES = [
-  [/^claude-fable-5/, "Fable 5"],
-  [/^claude-opus-4-8/, "Opus 4.8"],
-  [/^claude-opus-4-7/, "Opus 4.7"],
-  [/^claude-opus-4/, "Opus 4"],
-  [/^claude-sonnet-5/, "Sonnet 5"],
-  [/^claude-sonnet-4-5/, "Sonnet 4.5"],
-  [/^claude-haiku-4-5/, "Haiku 4.5"],
-  [/^opusplan$/, "Opus Plan"],
+  ...MODEL_CATALOG.flatMap(({ matches, label }) =>
+    matches.map((m) => [new RegExp("^" + escapeRegExp(modelIdPrefix(m)) + (isBareId(m) ? "$" : "")), label])
+  ),
   [/^default$/, "Default"],
 ];
 
@@ -154,6 +194,16 @@ function untilText(iso) {
   return `resets in ${m}m`;
 }
 
+/** Claude Code only refreshes cachedUsageUtilization occasionally, not on
+ *  every request. Once a window's own `resets_at` has passed, its cached
+ *  percent is a leftover from before that reset and no longer reflects
+ *  reality — flag it instead of presenting it as current. */
+function isStaleWindow(resetIso) {
+  if (!resetIso) return false;
+  const ms = new Date(resetIso).getTime() - Date.now();
+  return !isNaN(ms) && ms <= 0;
+}
+
 function agoText(ms) {
   if (ms == null) return "never";
   const diff = Date.now() - ms;
@@ -245,7 +295,14 @@ function computeState(cfg) {
     var weekResetAt = u.seven_day ? u.seven_day.resets_at : null;
   }
 
-  const worst = Math.max(usageFive || 0, usageWeek || 0);
+  const fiveResetAtVal = typeof fiveResetAt !== "undefined" ? fiveResetAt : null;
+  const weekResetAtVal = typeof weekResetAt !== "undefined" ? weekResetAt : null;
+  const fiveStale = isStaleWindow(fiveResetAtVal);
+  const weekStale = isStaleWindow(weekResetAtVal);
+
+  // A stale, already-expired window shouldn't drive the warning/error color —
+  // that leftover percent is from before the reset, not current usage.
+  const worst = Math.max(fiveStale ? 0 : usageFive || 0, weekStale ? 0 : usageWeek || 0);
   const warnAt = cfg.get("usageWarningPercent");
   const errAt = cfg.get("usageErrorPercent");
   const severity = worst >= errAt ? "error" : worst >= warnAt ? "warning" : "normal";
@@ -262,8 +319,10 @@ function computeState(cfg) {
     usageWeek,
     usageLimits,
     usageFetchedAt,
-    fiveResetAt: typeof fiveResetAt !== "undefined" ? fiveResetAt : null,
-    weekResetAt: typeof weekResetAt !== "undefined" ? weekResetAt : null,
+    fiveResetAt: fiveResetAtVal,
+    weekResetAt: weekResetAtVal,
+    fiveStale,
+    weekStale,
     worst,
     severity,
   };
@@ -318,11 +377,12 @@ function buildSidebarHtml(state) {
 
   function limitRow(label, pct, resetAt) {
     if (pct == null) return "";
-    const cls = pct >= 90 ? "err" : pct >= 70 ? "warn" : "ok";
+    const stale = isStaleWindow(resetAt);
+    const cls = stale ? "stale" : pct >= 90 ? "err" : pct >= 70 ? "warn" : "ok";
     return `<div class="limit">
-      <div class="limit-head"><span>${escapeHtml(label)}</span><span>${pct}%</span></div>
+      <div class="limit-head"><span>${escapeHtml(label)}${stale ? " ⚠" : ""}</span><span>${pct}%</span></div>
       <div class="track"><div class="fill ${cls}" style="width:${Math.min(100, pct)}%"></div></div>
-      <div class="subtle">${escapeHtml(untilText(resetAt))}</div>
+      <div class="subtle">${escapeHtml(untilText(resetAt))}${stale ? " — stale, not yet re-fetched by Claude Code" : ""}</div>
     </div>`;
   }
 
@@ -353,6 +413,7 @@ function buildSidebarHtml(state) {
   .fill.ok { background: var(--vscode-charts-green, #3fb950); }
   .fill.warn { background: var(--vscode-charts-yellow, #d29922); }
   .fill.err { background: var(--vscode-charts-red, #f85149); }
+  .fill.stale { background: var(--vscode-descriptionForeground, #888); opacity: .5; }
   .actions { display: flex; gap: 6px; margin-top: 14px; }
   button { flex: 1; background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); border: none; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
   button:hover { background: var(--vscode-button-secondaryHoverBackground); }
@@ -497,8 +558,8 @@ function activate(context) {
     // --- Usage ---
     if (onStatusBar && conf.get("showUsage") && (usageFive != null || usageWeek != null)) {
       const parts = [];
-      if (usageFive != null) parts.push(`5h ${usageFive}%`);
-      if (usageWeek != null) parts.push(`7d ${usageWeek}%`);
+      if (usageFive != null) parts.push(`5h ${usageFive}%${state.fiveStale ? "⚠" : ""}`);
+      if (usageWeek != null) parts.push(`7d ${usageWeek}%${state.weekStale ? "⚠" : ""}`);
       items.usage.text = `$(pulse) ${parts.join(" · ") || "usage n/a"}`;
       items.usage.backgroundColor =
         severity === "error"
@@ -509,14 +570,25 @@ function activate(context) {
 
       const md = new vscode.MarkdownString(undefined, true);
       md.appendMarkdown(`**Claude usage limits**\n\n`);
-      if (usageFive != null) md.appendMarkdown(`Session (5h): \`${bar(usageFive)}\` ${usageFive}% — ${untilText(state.fiveResetAt)}\n\n`);
-      if (usageWeek != null) md.appendMarkdown(`Weekly (7d): \`${bar(usageWeek)}\` ${usageWeek}% — ${untilText(state.weekResetAt)}\n\n`);
+      if (usageFive != null)
+        md.appendMarkdown(
+          `Session (5h): \`${bar(usageFive)}\` ${usageFive}% — ${untilText(state.fiveResetAt)}${state.fiveStale ? " ⚠ _stale, window already reset_" : ""}\n\n`
+        );
+      if (usageWeek != null)
+        md.appendMarkdown(
+          `Weekly (7d): \`${bar(usageWeek)}\` ${usageWeek}% — ${untilText(state.weekResetAt)}${state.weekStale ? " ⚠ _stale, window already reset_" : ""}\n\n`
+        );
       for (const lim of usageLimits || []) {
         if (lim.kind === "session" || lim.kind === "weekly_all") continue;
         if (lim.percent == null) continue;
-        md.appendMarkdown(`${limitLabel(lim.kind, lim.scope)}: \`${bar(lim.percent)}\` ${lim.percent}% — ${untilText(lim.resets_at)}\n\n`);
+        const stale = isStaleWindow(lim.resets_at);
+        md.appendMarkdown(
+          `${limitLabel(lim.kind, lim.scope)}: \`${bar(lim.percent)}\` ${lim.percent}% — ${untilText(lim.resets_at)}${stale ? " ⚠ _stale_" : ""}\n\n`
+        );
       }
       if (usageFetchedAt) md.appendMarkdown(`_Updated ${agoText(usageFetchedAt)} by Claude Code._`);
+      if (state.fiveStale || state.weekStale)
+        md.appendMarkdown(`\n\n_⚠ Claude Code hasn't re-fetched usage since this window reset — open Claude Code to refresh it._`);
       items.usage.tooltip = md;
       items.usage.show();
     } else items.usage.hide();
@@ -546,39 +618,54 @@ function activate(context) {
   context.subscriptions.push(
     vscode.commands.registerCommand("claudeCompanion.pickModel", async () => {
       const current = readGlobalSettings().model;
+      const currentOneM = /\[1m\]$/.test(current || "");
+      const currentBase = (current || "").replace(/\[1m\]$/, "");
+
       const options = [
-        { label: "Fable 5", value: "claude-fable-5" },
-        { label: "Fable 5 · 1M context", value: "claude-fable-5[1m]" },
-        { label: "Opus 4.8", value: "claude-opus-4-8" },
-        { label: "Sonnet 5", value: "claude-sonnet-5" },
-        { label: "Haiku 4.5", value: "claude-haiku-4-5" },
-        { label: "Default (let Claude Code decide)", value: undefined },
-        { label: "Custom model id…", value: "__custom__" },
-      ].map((o) => ({
-        ...o,
-        description: o.value && o.value !== "__custom__" ? o.value : "",
-        picked: o.value === current,
-        label: (o.value === current ? "$(check) " : "") + o.label,
-      }));
+        ...MODEL_CATALOG.map((m) => ({
+          label: (m.id === currentBase ? "$(check) " : "") + m.label,
+          description: m.id,
+          value: m.id,
+          oneM: m.oneM,
+        })),
+        { label: (!current ? "$(check) " : "") + "Default (let Claude Code decide)", value: undefined, oneM: false },
+        { label: "Custom model id…", value: "__custom__", oneM: false },
+      ];
       const pick = await vscode.window.showQuickPick(options, {
         placeHolder: `Model for new Claude Code sessions (current: ${current || "default"})`,
+        matchOnDescription: true,
       });
       if (!pick) return;
+
       let value = pick.value;
       if (value === "__custom__") {
         value = await vscode.window.showInputBox({
-          prompt: "Model id (e.g. claude-fable-5[1m])",
+          prompt: "Model alias or full id (e.g. opus, or claude-opus-5[1m])",
           value: current || "",
         });
         if (!value) return;
+      } else if (value && pick.oneM) {
+        const wasCurrent = value === currentBase;
+        const oneMPick = await vscode.window.showQuickPick(
+          [
+            { label: "Standard context", oneM: false, picked: wasCurrent && !currentOneM },
+            { label: "1M context", oneM: true, picked: wasCurrent && currentOneM },
+          ].map((o) => ({ ...o, label: (o.picked ? "$(check) " : "") + o.label })),
+          { placeHolder: `Context window for ${pick.label.replace(/^\$\(check\)\s*/, "")}` }
+        );
+        if (!oneMPick) return;
+        if (oneMPick.oneM) value += "[1m]";
       }
       await writeGlobalSetting("model", value);
     }),
 
     vscode.commands.registerCommand("claudeCompanion.pickEffort", async () => {
       const current = readGlobalSettings().effortLevel;
+      // Matches `claude --effort <level>`'s documented values. "max" is
+      // gated to a subset of models — Claude Code falls back automatically
+      // when a session's model doesn't support the requested level.
       const pick = await vscode.window.showQuickPick(
-        ["high", "medium", "low"].map((v) => ({
+        ["low", "medium", "high", "xhigh", "max"].map((v) => ({
           label: (v === current ? "$(check) " : "") + titleCase(v),
           value: v,
         })),
@@ -602,7 +689,8 @@ function activate(context) {
       }
       const u = usage.utilization;
       const lines = (u.limits || []).map(
-        (l) => `${limitLabel(l.kind, l.scope)}: ${l.percent}% — ${untilText(l.resets_at)}`
+        (l) =>
+          `${limitLabel(l.kind, l.scope)}: ${l.percent}% — ${untilText(l.resets_at)}${isStaleWindow(l.resets_at) ? " ⚠ stale" : ""}`
       );
       vscode.window.showQuickPick(lines, { placeHolder: `Claude usage — updated ${agoText(usage.fetchedAtMs)}` });
     }),
@@ -689,6 +777,15 @@ function activate(context) {
     } catch {
       /* directory may not exist yet */
     }
+  }
+  // cachedUsageUtilization lives in ~/.claude.json, a sibling of ~/.claude/
+  // (not inside the directory watched above) — watch it directly so usage
+  // updates reflect immediately instead of waiting for the next poll tick.
+  try {
+    const w = fs.watch(STATE_PATH, debouncedRefresh);
+    context.subscriptions.push({ dispose: () => w.close() });
+  } catch {
+    /* file may not exist yet */
   }
   const interval = setInterval(refresh, Math.max(2, cfg().get("pollIntervalSeconds")) * 1000);
   context.subscriptions.push({ dispose: () => clearInterval(interval) });

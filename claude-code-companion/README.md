@@ -58,6 +58,7 @@ Files are watched and additionally polled (default every 10 s, configurable). On
 
 - Model/effort changes apply to **new** Claude Code sessions; a running session keeps its current model until you change it in-session (`/model`).
 - The mode indicator reflects the **most recently active** session for this workspace — with several parallel sessions it shows the latest one.
+- Usage percentages are only as fresh as Claude Code's own cache — if a window's reset time has already passed without Claude Code re-fetching, the indicator marks it ⚠ **stale** rather than showing a number that's likely wrong.
 - Usage data is as fresh as Claude Code's own cache (the tooltip / footer shows when it was last updated).
 - The editor title bar button is icon-only by design (a VS Code API limitation, not a bug) — use the sidebar or status bar if you want live text at a glance.
 - VS Code keeps a **separate extension list per profile**. If you don't see the indicators after installing, confirm you installed into the profile your window is actually using (Command Palette → "Profiles: Show Profiles" to check, or `code --profile "<name>" --install-extension <vsix>`).
