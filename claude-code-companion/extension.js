@@ -274,7 +274,11 @@ function computeState(cfg) {
   const session = cwd ? readSessionState(cwd) : null;
 
   const modelPretty = prettyModel(settings.model);
-  const effort = (session && session.effort) || settings.effortLevel || "default";
+  // Primary value is the global setting (what new sessions will use) — same
+  // as modelPretty above. Falling back to the session transcript's last
+  // recorded effort here would show a stale value after the user changes
+  // the setting until the next assistant turn re-records it.
+  const effort = settings.effortLevel || "default";
   const mode = (session && session.permissionMode) || null;
 
   const windowSize = /\[1m\]$/.test(settings.model || "") ? 1000000 : 200000;
@@ -434,6 +438,11 @@ function buildSidebarHtml(state) {
   <span class="label">Effort</span>
   <span class="value">${escapeHtml(titleCase(effort))}</span>
 </div>
+${
+  state.session && state.session.effort && state.session.effort !== effort
+    ? `<div class="subtle">Last response in this project: ${escapeHtml(titleCase(state.session.effort))}</div>`
+    : ""
+}
 
 <h2>Session</h2>
 ${modeRow}
@@ -448,7 +457,7 @@ ${usageFive == null && usageWeek == null ? `<div class="subtle">No usage data ye
   <button data-command="claudeCompanion.refresh">Refresh</button>
   <button data-command="claudeCompanion.chooseSurfaces">Surfaces…</button>
 </div>
-<div class="footer">Usage updated ${escapeHtml(agoText(usageFetchedAt))}</div>
+<div class="footer">Usage updated ${escapeHtml(agoText(usageFetchedAt))} — mirrors Claude Code's own cache, not live. Run <code>/status</code> in Claude Code for the current figures.</div>
 
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
@@ -536,9 +545,13 @@ function activate(context) {
     // --- Effort ---
     if (onStatusBar && conf.get("showEffort")) {
       items.effort.text = `$(dashboard) ${titleCase(effort)}`;
-      items.effort.tooltip = new vscode.MarkdownString(
-        `**Effort level**: \`${effort}\`\n\n_Click to change (applies to new sessions)._`
-      );
+      const effortMd = new vscode.MarkdownString(undefined, true);
+      effortMd.appendMarkdown(`**Effort level**: \`${effort}\`\n\n`);
+      if (state.session && state.session.effort && state.session.effort !== effort) {
+        effortMd.appendMarkdown(`Last response in this project: \`${state.session.effort}\`\n\n`);
+      }
+      effortMd.appendMarkdown(`_Click to change (applies to new sessions)._`);
+      items.effort.tooltip = effortMd;
       items.effort.show();
     } else items.effort.hide();
 
@@ -587,8 +600,11 @@ function activate(context) {
         );
       }
       if (usageFetchedAt) md.appendMarkdown(`_Updated ${agoText(usageFetchedAt)} by Claude Code._`);
+      md.appendMarkdown(
+        `\n\n_These numbers mirror Claude Code's own cache, which it refreshes on its own schedule — not live. For the current figures, run \`/status\` in a Claude Code session._`
+      );
       if (state.fiveStale || state.weekStale)
-        md.appendMarkdown(`\n\n_⚠ Claude Code hasn't re-fetched usage since this window reset — open Claude Code to refresh it._`);
+        md.appendMarkdown(`\n\n_⚠ Also past this window's reset time, so this is a leftover from before the reset._`);
       items.usage.tooltip = md;
       items.usage.show();
     } else items.usage.hide();
@@ -682,6 +698,9 @@ function activate(context) {
     }),
 
     vscode.commands.registerCommand("claudeCompanion.showUsage", () => {
+      // Re-syncs the persistent status bar/sidebar usage display too, not
+      // just the detail popup below — one click refreshes everything.
+      refresh();
       const usage = readUsage();
       if (!usage || !usage.utilization) {
         vscode.window.showInformationMessage("No cached usage data found (~/.claude.json). Use Claude Code once to populate it.");
@@ -692,7 +711,9 @@ function activate(context) {
         (l) =>
           `${limitLabel(l.kind, l.scope)}: ${l.percent}% — ${untilText(l.resets_at)}${isStaleWindow(l.resets_at) ? " ⚠ stale" : ""}`
       );
-      vscode.window.showQuickPick(lines, { placeHolder: `Claude usage — updated ${agoText(usage.fetchedAtMs)}` });
+      vscode.window.showQuickPick(lines, {
+        placeHolder: `Claude usage — updated ${agoText(usage.fetchedAtMs)} (Claude Code's cache, not live — run /status for current figures)`,
+      });
     }),
 
     vscode.commands.registerCommand("claudeCompanion.refresh", refresh),

@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.2.6
+
+- The effort indicator showed a stale value after changing effort level (e.g. via Claude Code's own picker) until a new assistant turn happened in the active session — it prioritized the last effort recorded in the session transcript over the live global setting, the opposite of how the Model indicator behaves (global setting primary, session's actual last-used value only as supplementary tooltip text). Effort now follows the same pattern: shows the current setting immediately, with the session's last-used value noted separately when it differs.
+- Clicking the usage status bar item already re-read `~/.claude.json` fresh for its detail popup, but left the persistent status bar text and sidebar showing whatever was there before — now the click also refreshes those, so one click resyncs everything usage-related without a window reload.
+- Usage numbers can legitimately lag behind what Claude Code's own UI shows, since they mirror Claude Code's local cache rather than a live query, and that cache doesn't refresh on the same cadence Claude Code's own live status does. Added a persistent note (status bar tooltip, sidebar footer, usage quick-pick) pointing at `/status` in a Claude Code session for the current figures, rather than only calling this out when the cache is stale enough to trip the reset-time check.
+
 ## 0.2.5
 
 - The model picker and the display-name prettifier were two separately hand-maintained lists that had drifted apart — newly released models (e.g. Opus 5) were missing from both, so they fell back to a raw/guessed label and couldn't be selected at all. Unified them into one `MODEL_CATALOG`, added the missing models, and made the 1M-context option generic instead of hardcoded per-model.
