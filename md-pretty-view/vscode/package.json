@@ -1,8 +1,8 @@
 {
   "name": "md-pretty-view",
   "displayName": "MD Pretty View",
-  "description": "A clean, polished look for Markdown Preview Enhanced: one-lever light/dark theme, a consistent editor-style syntax palette, styled Mermaid diagrams, and Mermaid pan/zoom & fit-to-screen. Installs the styling into your Markdown Preview Enhanced config folder.",
-  "version": "0.0.8",
+  "description": "A clean, polished look for Markdown Preview Enhanced: 6 light/dark theme variants (3 accent colors × light/dark), a consistent editor-style syntax palette, styled Mermaid diagrams, and Mermaid pan/zoom & fit-to-screen. Installs the styling into your Markdown Preview Enhanced config folder.",
+  "version": "1.2.0",
   "publisher": "masoud-pourhasan",
   "license": "MIT",
   "icon": "icon.png",
@@ -68,6 +68,10 @@
       {
         "command": "mdPrettyView.toggleMode",
         "title": "MD Pretty View: Toggle Light / Dark"
+      },
+      {
+        "command": "mdPrettyView.chooseTheme",
+        "title": "MD Pretty View: Choose Theme (6 Light/Dark Variants)"
       }
     ],
     "configuration": {

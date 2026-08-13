@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.2.0
+
+- New **"Choose Theme"** command: pick from 6 theme variants (3 accent colors — blue, green, purple — × light/dark), not just a light/dark toggle. Headings, links, blockquotes, inline code and table headers now follow a second, independent "accent" lever alongside the existing light/dark lever. "Toggle Light / Dark" still works as a quick flip that keeps your current accent.
+- Green and purple are true variants of blue — same perceptual lightness/saturation (OKLCh), just a rotated hue — and both verified to hold WCAG AA contrast against the page background.
+
 ## 0.0.4
 
 - Maintenance: automated Marketplace publishing via CI, and moved the theme assets to a shared source of truth. No user-facing changes.

@@ -17,6 +17,13 @@
    which resolves from the `color-scheme` set on <html>. So one keyword
    switches the whole preview — no dependency on any external theme.
 
+   THE ACCENT LEVER (below) is a second, independent switch: it picks which
+   of 3 bundled hues (blue / green / purple) headings, links, blockquotes,
+   inline code and table headers use. Combined with THE ONE LEVER above,
+   that's 3 light + 3 dark = 6 total looks. The VS Code extension's
+   "Choose Theme" command sets both levers together; edit them by hand here
+   too if you're not using the extension.
+
    To reuse in a NEW repo: copy this `.crossnote/` folder + the
    `markdown-preview-enhanced.*` keys from `.vscode/settings.json`.
    ===================================================================== */
@@ -27,6 +34,36 @@
    override a stylesheet rule on html alone. Setting it on body + the
    container makes `light-dark()` resolve from there regardless. */
 html, body, .crossnote.markdown-preview { color-scheme: dark; }   /* ← change to `light` or `dark` */
+
+/* ─────────────  THE ACCENT LEVER  ─────────────
+   Swap the whole block below for one of the 3 bundled accents (or your own
+   custom colors); only plain hex/rgba literals are used, matching the rest
+   of this file. NOTE FOR EDITORS: style.less is run through a LESS compiler
+   (not just handed to the browser as raw CSS), and LESS comments do not
+   nest — writing a literal comment-open/comment-close pair inside this
+   block comment would close it early and corrupt everything after, which
+   silently breaks the ENTIRE stylesheet (every theme, not just the accent).
+   The one-line comment marking each variable block below (naming the
+   current accent, e.g. "blue") is read by the extension's "Choose Theme"
+   command to detect the current pick — safe to ignore if editing by hand.
+   Bundled accents:
+     blue   (default): light #0969da / dark #4fc3f7
+     green:             light #008a1d / dark #79cb86
+     purple:            light #7a4ecf / dark #bba4fd
+   Green and purple are blue with the same OKLCh lightness + chroma, hue
+   rotated — true variants of blue rather than independently-picked colors,
+   still verified to hold WCAG AA contrast on the page background. */
+:root, html, body, .crossnote.markdown-preview {
+    /* md-pretty-accent: blue */
+    --md-pretty-accent-light:           #0969da;
+    --md-pretty-accent-light-hover:     #0a5cc0;
+    --md-pretty-accent-light-wash-bq:   rgba(9, 105, 218, 0.06);
+    --md-pretty-accent-light-wash-code: rgba(9, 105, 218, 0.08);
+    --md-pretty-accent-dark:            #4fc3f7;
+    --md-pretty-accent-dark-hover:      #81d4fa;
+    --md-pretty-accent-dark-wash-bq:    rgba(79, 195, 247, 0.08);
+    --md-pretty-accent-dark-wash-code:  rgba(79, 195, 247, 0.10);
+}
 
 /* Fill the whole webview surface with the themed background */
 html, body {
@@ -46,14 +83,14 @@ html, body {
     p, li, td, th, strong, em { color: light-dark(#24292f, #e6e6e6) !important; }
     strong { color: light-dark(#000000, #ffffff) !important; }
 
-    /* --- Headings (blue accent, adapts per mode) --- */
+    /* --- Headings (accent color, follows THE ACCENT LEVER + THE ONE LEVER) --- */
     h1, h2, h3, h4, h5, h6 {
         font-weight: 700;
         line-height: 1.3;
-        color: light-dark(#0969da, #4fc3f7) !important;
+        color: light-dark(var(--md-pretty-accent-light), var(--md-pretty-accent-dark)) !important;
     }
     h1 {
-        border-bottom: 2px solid light-dark(#0969da, #4fc3f7);
+        border-bottom: 2px solid light-dark(var(--md-pretty-accent-light), var(--md-pretty-accent-dark));
         padding-bottom: 0.3em;
     }
     h2 {
@@ -62,13 +99,16 @@ html, body {
     }
 
     /* --- Links --- */
-    a { color: light-dark(#0969da, #4fc3f7) !important; text-decoration: none; }
-    a:hover { color: light-dark(#0a5cc0, #81d4fa) !important; text-decoration: underline; }
+    a { color: light-dark(var(--md-pretty-accent-light), var(--md-pretty-accent-dark)) !important; text-decoration: none; }
+    a:hover {
+        color: light-dark(var(--md-pretty-accent-light-hover), var(--md-pretty-accent-dark-hover)) !important;
+        text-decoration: underline;
+    }
 
     /* --- Blockquotes --- */
     blockquote {
-        border-left: 4px solid light-dark(#0969da, #4fc3f7);
-        background: light-dark(rgba(9, 105, 218, 0.06), rgba(79, 195, 247, 0.08));
+        border-left: 4px solid light-dark(var(--md-pretty-accent-light), var(--md-pretty-accent-dark));
+        background: light-dark(var(--md-pretty-accent-light-wash-bq), var(--md-pretty-accent-dark-wash-bq));
         color: light-dark(#57606a, #b8c4cc) !important;
         border-radius: 0 4px 4px 0;
         padding: 0.4em 1.2em;
@@ -77,8 +117,8 @@ html, body {
 
     /* --- Inline code (not fenced blocks) --- */
     *:not(pre) > code {
-        color: light-dark(#0969da, #4fc3f7) !important;
-        background: light-dark(rgba(9, 105, 218, 0.08), rgba(79, 195, 247, 0.10)) !important;
+        color: light-dark(var(--md-pretty-accent-light), var(--md-pretty-accent-dark)) !important;
+        background: light-dark(var(--md-pretty-accent-light-wash-code), var(--md-pretty-accent-dark-wash-code)) !important;
         padding: 0.15em 0.4em;
         border-radius: 4px;
         font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
@@ -90,7 +130,7 @@ html, body {
         /* A soft but clearly-darker-than-the-cells header row, so headers are
            easy to distinguish (cells sit on the page background). */
         background: light-dark(#dce5f2, #2b3444) !important;
-        color: light-dark(#0969da, #4fc3f7) !important;
+        color: light-dark(var(--md-pretty-accent-light), var(--md-pretty-accent-dark)) !important;
         border: 1px solid rgba(128, 128, 128, 0.3);
         padding: 0.5em 0.9em !important;
     }

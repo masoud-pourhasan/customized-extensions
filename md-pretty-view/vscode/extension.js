@@ -33,6 +33,106 @@ const WORKSPACE_ASSET_FILES = ASSET_FILES.filter((f) => f !== "style.less");
 
 const DISMISS_KEY = "mdPrettyView.applyPromptDismissed";
 
+// Match the ACTUAL lever rule (scoped by the `.crossnote.markdown-preview`
+// selector) rather than any `color-scheme:` text that may appear in comments.
+const SCHEME_RE = /(\.crossnote\.markdown-preview\s*\{\s*color-scheme:\s*)(dark|light)/;
+
+// The 3 bundled accent hues, matching THE ACCENT LEVER block in style.less.
+// Plain hex/rgba literals only (no color-mix()/division) — see that file's
+// comment for why. Combined with the light/dark scheme lever, these give
+// 3 light + 3 dark = 6 total theme combinations.
+const ACCENTS = [
+  {
+    id: "blue",
+    name: "Blue",
+    swatch: "🔵",
+    light: "#0969da",
+    lightHover: "#0a5cc0",
+    lightWashBq: "rgba(9, 105, 218, 0.06)",
+    lightWashCode: "rgba(9, 105, 218, 0.08)",
+    dark: "#4fc3f7",
+    darkHover: "#81d4fa",
+    darkWashBq: "rgba(79, 195, 247, 0.08)",
+    darkWashCode: "rgba(79, 195, 247, 0.10)",
+  },
+  {
+    // Same OKLCh lightness + chroma as blue, hue rotated to green — a true
+    // "variant" of blue rather than an independently-picked color, and
+    // verified to keep WCAG AA contrast (a naive HSL hue-rotation instead
+    // breaks contrast badly here, e.g. green light drops to ~1.9:1 on white).
+    id: "green",
+    name: "Green",
+    swatch: "🟢",
+    light: "#008a1d",
+    lightHover: "#007919",
+    lightWashBq: "rgba(0, 138, 29, 0.06)",
+    lightWashCode: "rgba(0, 138, 29, 0.08)",
+    dark: "#79cb86",
+    darkHover: "#9cd9a4",
+    darkWashBq: "rgba(121, 203, 134, 0.08)",
+    darkWashCode: "rgba(121, 203, 134, 0.10)",
+  },
+  {
+    // Same OKLCh lightness + chroma as blue, hue rotated to purple.
+    id: "purple",
+    name: "Purple",
+    swatch: "🟣",
+    light: "#7a4ecf",
+    lightHover: "#6b44b6",
+    lightWashBq: "rgba(122, 78, 207, 0.06)",
+    lightWashCode: "rgba(122, 78, 207, 0.08)",
+    dark: "#bba4fd",
+    darkHover: "#ccbbff",
+    darkWashBq: "rgba(187, 164, 253, 0.08)",
+    darkWashCode: "rgba(187, 164, 253, 0.10)",
+  },
+];
+
+// Marks the start of the accent variable block in style.less; the block runs
+// from this line to the next top-level `}` (see THE ACCENT LEVER there).
+const ACCENT_MARKER = "/* md-pretty-accent:";
+
+function buildAccentBlock(accent) {
+  return `${ACCENT_MARKER} ${accent.id} */
+    --md-pretty-accent-light:           ${accent.light};
+    --md-pretty-accent-light-hover:     ${accent.lightHover};
+    --md-pretty-accent-light-wash-bq:   ${accent.lightWashBq};
+    --md-pretty-accent-light-wash-code: ${accent.lightWashCode};
+    --md-pretty-accent-dark:            ${accent.dark};
+    --md-pretty-accent-dark-hover:      ${accent.darkHover};
+    --md-pretty-accent-dark-wash-bq:    ${accent.darkWashBq};
+    --md-pretty-accent-dark-wash-code:  ${accent.darkWashCode};`;
+}
+
+/** Current accent id from the marker comment, or undefined if not found. */
+function readAccentId(css) {
+  const start = css.indexOf(ACCENT_MARKER);
+  if (start === -1) return undefined;
+  const m = css.slice(start, start + 60).match(/\/\*\s*md-pretty-accent:\s*(\w+)\s*\*\//);
+  return m ? m[1] : undefined;
+}
+
+/** Replace the whole accent variable block (marker line through the next `}`). */
+function writeAccentBlock(css, accent) {
+  const start = css.indexOf(ACCENT_MARKER);
+  if (start === -1) return null;
+  const end = css.indexOf("\n}", start);
+  if (end === -1) return null;
+  return css.slice(0, start) + buildAccentBlock(accent) + css.slice(end);
+}
+
+// The 6 selectable combinations (3 accents × 2 schemes), in display order.
+const THEMES = [];
+for (const accent of ACCENTS) {
+  for (const scheme of ["light", "dark"]) {
+    THEMES.push({
+      accent,
+      scheme,
+      label: `${accent.swatch} ${accent.name} · ${scheme === "light" ? "Light" : "Dark"}`,
+    });
+  }
+}
+
 /**
  * Resolve the folder MPE actually reads its global config from.
  * This MUST mirror crossnote's own resolution logic, otherwise we write
@@ -293,13 +393,10 @@ async function toggleMode() {
     );
     return;
   }
-  // Match the ACTUAL lever rule (scoped by the `.crossnote.markdown-preview`
-  // selector) rather than any `color-scheme:` text that may appear in comments.
-  const re = /(\.crossnote\.markdown-preview\s*\{\s*color-scheme:\s*)(dark|light)/;
   // Determine the current mode from the first file that has the lever.
   let current;
   for (const file of files) {
-    const m = fs.readFileSync(file, "utf8").match(re);
+    const m = fs.readFileSync(file, "utf8").match(SCHEME_RE);
     if (m) {
       current = m[2];
       break;
@@ -313,7 +410,7 @@ async function toggleMode() {
   for (const file of files) {
     try {
       const css = fs.readFileSync(file, "utf8");
-      if (re.test(css)) fs.writeFileSync(file, css.replace(re, `$1${next}`), "utf8");
+      if (SCHEME_RE.test(css)) fs.writeFileSync(file, css.replace(SCHEME_RE, `$1${next}`), "utf8");
     } catch {
       /* ignore individual file failures */
     }
@@ -323,11 +420,69 @@ async function toggleMode() {
   );
 }
 
+/**
+ * Let the user pick one of the 6 bundled theme combinations (3 accents ×
+ * light/dark) and write both levers — the `color-scheme` lever and the
+ * `--md-pretty-accent-*` accent block — into the global style.less in one
+ * pass. The accent lever is intentionally NOT duplicated into workspace
+ * copies either, for the same reason the scheme lever isn't (see
+ * `styleLessFiles`): a second copy would win over the global pick.
+ */
+async function chooseTheme() {
+  const files = styleLessFiles();
+  if (!files.length) {
+    vscode.window.showWarningMessage(
+      "Theme not installed yet. Run \"MD Pretty View: Apply Theme (Global)\" first."
+    );
+    return;
+  }
+
+  // Determine the current combo from the first file that has both levers.
+  let currentScheme, currentAccentId;
+  for (const file of files) {
+    const css = fs.readFileSync(file, "utf8");
+    const schemeMatch = css.match(SCHEME_RE);
+    if (schemeMatch) currentScheme = schemeMatch[2];
+    const accentId = readAccentId(css);
+    if (accentId) currentAccentId = accentId;
+    if (currentScheme && currentAccentId) break;
+  }
+
+  const items = THEMES.map((t) => ({
+    label: t.label,
+    description:
+      t.scheme === currentScheme && t.accent.id === currentAccentId ? "current" : undefined,
+    theme: t,
+  }));
+
+  const pick = await vscode.window.showQuickPick(items, {
+    placeHolder: "Choose a MD Pretty View theme",
+  });
+  if (!pick) return;
+
+  const { accent, scheme } = pick.theme;
+  for (const file of files) {
+    try {
+      let css = fs.readFileSync(file, "utf8");
+      if (SCHEME_RE.test(css)) css = css.replace(SCHEME_RE, `$1${scheme}`);
+      const withAccent = writeAccentBlock(css, accent);
+      if (withAccent) css = withAccent;
+      fs.writeFileSync(file, css, "utf8");
+    } catch {
+      /* ignore individual file failures */
+    }
+  }
+  vscode.window.showInformationMessage(
+    `Markdown preview switched to ${pick.theme.label}. Reload the MPE preview to see it.`
+  );
+}
+
 function activate(context) {
   context.subscriptions.push(
     vscode.commands.registerCommand("mdPrettyView.apply", () => applyTheme(context)),
     vscode.commands.registerCommand("mdPrettyView.remove", () => removeTheme()),
-    vscode.commands.registerCommand("mdPrettyView.toggleMode", () => toggleMode())
+    vscode.commands.registerCommand("mdPrettyView.toggleMode", () => toggleMode()),
+    vscode.commands.registerCommand("mdPrettyView.chooseTheme", () => chooseTheme())
   );
 
   // Prompt to apply on first run (common pattern; never writes without consent).

@@ -8,9 +8,9 @@ Drag to pan, Ctrl/⌘+scroll (or the +/− buttons) to zoom, double-click to res
 
 <!-- <img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/mermaid-panzoom.gif" alt="Mermaid pan, zoom and fit-to-screen demo" width="100%" /> -->
 
-### One-lever light / dark
+### 6 theme variants: light / dark × 3 accent colors
 
-A single switch flips the whole page *and* the code surface together, independent of your VS Code editor theme, with a consistent syntax palette that stays readable in both modes.
+A single switch flips the whole page *and* the code surface between light and dark, independent of your VS Code editor theme, with a consistent syntax palette that stays readable in both modes. A second, independent switch picks the accent color — headings, links, blockquotes, inline code, and table headers — from **blue** (default), **green**, or **purple**, giving 6 total theme combinations. The two non-default accents are true variants of blue (same perceptual lightness and saturation, just a rotated hue), verified to hold WCAG AA contrast rather than picked arbitrarily.
 
 <!-- <img src="https://raw.githubusercontent.com/masoud-pourhasan/customized-extensions/main/md-pretty-view/vscode/media/light-dark-toggle.gif" alt="One-lever light and dark mode toggle demo" width="100%" /> -->
 
@@ -67,7 +67,8 @@ Run these from the Command Palette (`⌘ ⇧ P` / `Ctrl ⇧ P`):
 | Command | What it does |
 |---|---|
 | **MD Pretty View: Apply Theme (Global)** | Installs the styling and sets the recommended MPE settings. |
-| **MD Pretty View: Toggle Light / Dark** | Flips the light/dark lever. |
+| **MD Pretty View: Toggle Light / Dark** | Flips the light/dark lever, keeping your current accent color. |
+| **MD Pretty View: Choose Theme (6 Light/Dark Variants)** | Pick any of the 6 combinations (blue/green/purple × light/dark) at once. |
 | **MD Pretty View: Remove Theme (Global)** | Removes the installed files (backups kept). |
 
 On first run the extension offers to apply the theme automatically. After applying, reload the window.
